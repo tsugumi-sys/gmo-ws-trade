@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.engine.row import Row
 import uuid
 from dateutil import parser
 
@@ -41,7 +42,7 @@ def get_whole_board(db: Session) -> List[schemas.Board]:
     return db.query(models.Board).all()
 
 
-def get_current_board(db: Session, symbol: str, side: Optional[str] = None) -> Union[List[schemas.Board], Tuple]:
+def get_current_board(db: Session, symbol: str, side: Optional[str] = None) -> Union[List[Row], Tuple[List[Row]]]:
     """[Get current board. return with ascending order of price.]
 
     Args:
@@ -56,12 +57,14 @@ def get_current_board(db: Session, symbol: str, side: Optional[str] = None) -> U
         (Union(List[schemas.Board], Tuple)): Union(List[schemas.Board] if side = "BUY" or "SELL".
             Tuple(buy_board_items, sell_board_items) if side is None
     """
-    stat = """
-        select * from board
-        where timestamp = (select max(timestamp) from board where board.symbol=:symbol and board.side=:side) and
-        board.symbol=:symbol and board.side=:side
-        order by board.price
-    """
+    stat = text(
+        """
+            select * from board
+            where timestamp = (select max(timestamp) from board where board.symbol=:symbol and board.side=:side) and
+            board.symbol=:symbol and board.side=:side
+            order by board.price
+        """
+    )
 
     if isinstance(side, str):
         side = side.upper()
@@ -277,7 +280,6 @@ def insert_tick_item(db: Session, insert_item: Dict, max_rows: int = 1000):
     id = uuid.uuid4().hex
     timestamp = parser.parse(insert_item["timestamp"]).timestamp() * 1000
     timestamp = int(timestamp)
-    print(timestamp)
     symbol = insert_item["symbol"]
     tick_items = [
         models.Tick(
@@ -383,6 +385,7 @@ def insert_ohlcv_items(db: Session, insert_items: List[schemas.OHLCVCreate], max
     count_ohlcv = _count_ohlcv(db=db)
     if count_ohlcv + len(insert_items) - 1 > max_rows:
         query_limit = count_ohlcv + len(insert_items) - max_rows + 1
+        print(query_limit)
         delete_items = get_ohlcv(db=db, limit=query_limit, ascending=True)
         delete_ohlcv_items(db=db, delete_items=delete_items)
 
@@ -411,9 +414,9 @@ def update_ohlcv_items(db: Session, update_items: List[schemas.OHLCV]) -> None:
 def delete_ohlcv_items(db: Session, delete_items: List[Union[Dict, schemas.OHLCV]]) -> None:
     for item in delete_items:
         if isinstance(item, Dict):
-            db.query(models.OHLCV).filter(models.OHLCV.id == item["timestamp"]).delete()
+            db.query(models.OHLCV).filter(models.OHLCV.timestamp == item["timestamp"]).delete()
         else:
-            db.query(models.OHLCV).filter(models.OHLCV.id == item.timestamp).delete()
+            db.query(models.OHLCV).filter(models.OHLCV.timestamp == item.timestamp).delete()
 
     db.commit()
 
@@ -436,20 +439,22 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, max_rows: int = 100) -> No
                     order by timestamp desc
                 ) as close,
                 sum(size) as volume,
-                cast(timestamp/(1000*60) as int) as open_time,
+                cast(timestamp/(1000*5) as int) as open_time,
                 min(timestamp)
         from tick
         where tick.symbol= :symbol
-        group by open_time"""
+        group by open_time
+        order by timestamp desc
+        limit :limit"""
     )
     # cast((max(timestamp) - timestamp)/(1000*5) as int) as open_time
     # create ohlcv start from current time.
 
-    ohlcv_items = db.execute(stat, {"symbol": symbol}).all()
+    ohlcv_items = db.execute(stat, {"symbol": symbol, "limit": max_rows}).all()
     ohlcv_insert_items = []
     ohlcv_update_items = []
     for item in ohlcv_items:
-        ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[6], symbol=symbol)
+        ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[5], symbol=symbol)
         if _check_if_ohclv_stored(db, timestamp=ohlcv_model.timestamp) is True:
             ohlcv_update_items.append(ohlcv_model)
         else:

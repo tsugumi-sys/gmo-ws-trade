@@ -1,12 +1,8 @@
-from typing import List
 import websockets
 import asyncio
-import os
 import json
 import logging
-import time
 from dotenv import load_dotenv
-import matplotlib.pyplot as plt
 
 # from bybit_ws import BybitWebSocket
 from db import crud, models
@@ -76,10 +72,11 @@ async def tick_ws(ws_url: str, symbol: str):
                 res = json.loads(res)
                 with SessionLocal() as db:
                     # Insert data
-                    crud.insert_tick_item(db=db, insert_item=res, max_rows=30)
+                    crud.insert_tick_item(db=db, insert_item=res, max_rows=1000)
 
                     # Create ohlcv
-                    crud.create_ohlcv_from_ticks(db=db, symbol=symbol, max_rows=5000)
+                    crud.create_ohlcv_from_ticks(db=db, symbol=symbol, max_rows=10)
+
                     print("Tick:", crud._count_ticks(db=db))
                     print("OHLCV:", crud._count_ohlcv(db=db))
 
@@ -98,7 +95,7 @@ async def tick_ws(ws_url: str, symbol: str):
 async def run_multiple_websockets():
     symbol = "BTC_JPY"
     await asyncio.gather(
-        tick_ws(ws_url="wss://api.coin.z.com/ws/public/v1", symbol=symbol),
+        orderbook_ws(ws_url="wss://api.coin.z.com/ws/public/v1", symbol=symbol),
     )
 
 
