@@ -12,3 +12,12 @@ class BoardResponseItem(BaseModel):
     bids: List[BidsAsks]
     symbol: str
     timestamp: str
+
+
+class TickResponseItem(BaseModel):
+    channel: str
+    price: str
+    side: str
+    size: str
+    timestamp: str
+    symbol: str

@@ -2,7 +2,7 @@ import unittest
 import sys
 
 from tests.utils import test_engine, SessionLocal
-from tests import schemas
+from tests import response_schemas
 
 sys.path.append("./gmo_websocket/")
 from gmo_websocket.db import crud, models
@@ -24,9 +24,9 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
@@ -42,9 +42,9 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
@@ -60,18 +60,18 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
             )
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="350", size="100")],
-                    bids=[schemas.BidsAsks(price="150", size="30")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="350", size="100")],
+                    bids=[response_schemas.BidsAsks(price="150", size="30")],
                     symbol=self.dummy_symbol,
                     timestamp="2019-03-30T12:34:56.789Z",
                 ).dict(),
@@ -105,18 +105,18 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
             )
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="350", size="100")],
-                    bids=[schemas.BidsAsks(price="150", size="30")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="350", size="100")],
+                    bids=[response_schemas.BidsAsks(price="150", size="30")],
                     symbol=self.dummy_symbol,
                     timestamp="2019-03-30T12:34:56.789Z",
                 ).dict(),
@@ -150,9 +150,9 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
@@ -167,9 +167,9 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
@@ -198,9 +198,9 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),
@@ -232,9 +232,9 @@ class TestCrudBoard(unittest.TestCase):
         with SessionLocal() as db:
             crud.insert_board_items(
                 db=db,
-                insert_items=schemas.BoardResponseItem(
-                    asks=[schemas.BidsAsks(price="300", size="10")],
-                    bids=[schemas.BidsAsks(price="100", size="3")],
+                insert_items=response_schemas.BoardResponseItem(
+                    asks=[response_schemas.BidsAsks(price="300", size="10")],
+                    bids=[response_schemas.BidsAsks(price="100", size="3")],
                     symbol=self.dummy_symbol,
                     timestamp="2018-03-30T12:34:56.789Z",
                 ).dict(),

@@ -268,7 +268,22 @@ def delete_tick_items(db: Session, delete_items: List[schemas.Tick]) -> None:
     db.commit()
 
 
-def insert_tick_item(db: Session, insert_item: Dict, max_rows: int = 1000):
+def insert_tick_item(db: Session, insert_item: Dict, max_rows: int = 1000) -> None:
+    """Insert tick item
+
+    Args:
+        db (Session): Session of sqlalchemy
+        insert_item (Dict): Response of GMO websocket (subscribe tick).
+            e.g. {
+                    "channel":"trades",
+                    "price": "750760",
+                    "side": "BUY",
+                    "size": "0.1",
+                    "timestamp": "2018-03-30T12:34:56.789Z",
+                    "symbol": "BTC"
+                }
+        max_rows (int, optional): Number of max rows. Defaults to 1000.
+    """
     # Delete older items
     count_ticks = _count_ticks(db)
     if count_ticks > max_rows:
@@ -328,7 +343,7 @@ def get_ohlcv_with_symbol(db: Session, symbol: Optional[str] = None, limit: Opti
         db (Session): Session of sqlalchemy
         symbol (str): Name of symbol
         limit (Optional[int], optional): limit. Defaults to None.
-        ascending (bool, optional): ascending order. Defaults to True.
+        ascending (bool, optional): Ascending order of timestamp. Defaults to True.
 
     Returns:
         List[schemas.OHLCV]: list of ohlcv
@@ -421,12 +436,14 @@ def delete_ohlcv_items(db: Session, delete_items: List[Union[Dict, schemas.OHLCV
     db.commit()
 
 
-def create_ohlcv_from_ticks(db: Session, symbol: str, max_rows: int = 100) -> None:
+def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: int = 100) -> None:
     """Create OHLCV (5 seconds) from tick data.
 
     Args:
         db (Session): Session of sqlalchemy
         symbol (str): Name of pair
+        timespan (int): Timespan to create timebar.
+        max_rows (int): Number of max rows of ohlcv table. Default is 100.
     """
     stat = text(
         """select
@@ -439,7 +456,7 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, max_rows: int = 100) -> No
                     order by timestamp desc
                 ) as close,
                 sum(size) as volume,
-                cast(timestamp/(1000*5) as int) as open_time,
+                cast(timestamp/(1000*:time_span) as int) as open_time,
                 min(timestamp)
         from tick
         where tick.symbol= :symbol
@@ -450,7 +467,7 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, max_rows: int = 100) -> No
     # cast((max(timestamp) - timestamp)/(1000*5) as int) as open_time
     # create ohlcv start from current time.
 
-    ohlcv_items = db.execute(stat, {"symbol": symbol, "limit": max_rows}).all()
+    ohlcv_items = db.execute(stat, {"symbol": symbol, "limit": max_rows, "time_span": time_span}).all()
     ohlcv_insert_items = []
     ohlcv_update_items = []
     for item in ohlcv_items:
