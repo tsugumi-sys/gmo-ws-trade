@@ -461,13 +461,12 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
         from tick
         where tick.symbol= :symbol
         group by open_time
-        order by timestamp desc
-        limit :limit"""
+        order by open_time desc
+        limit 4
+        """
     )
-    # cast((max(timestamp) - timestamp)/(1000*5) as int) as open_time
-    # create ohlcv start from current time.
 
-    ohlcv_items = db.execute(stat, {"symbol": symbol, "limit": max_rows, "time_span": time_span}).all()
+    ohlcv_items = db.execute(stat, {"symbol": symbol, "time_span": time_span}).all()
     ohlcv_insert_items = []
     ohlcv_update_items = []
     for item in ohlcv_items:

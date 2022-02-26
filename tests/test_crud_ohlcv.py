@@ -195,7 +195,7 @@ class TestCrudOHLCV(unittest.TestCase):
             rows = crud._count_ohlcv(db)
             res = crud.get_ohlcv_with_symbol(db=db, symbol=self.dummy_symbol, limit=1)
 
-        self.assertEqual(rows, 1)
-        valid_timestamp = parser.parse("2020-01-01T00:00:03.900Z").timestamp() * 1000
+        self.assertEqual(rows, 4)
+        valid_timestamp = parser.parse("2020-01-01T00:00:00.900Z").timestamp() * 1000
         valid_timestamp = valid_timestamp // (time_span * 1000)
         self.assertEqual(res[0].timestamp, valid_timestamp)
