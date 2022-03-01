@@ -1,23 +1,12 @@
 import asyncio
 import logging
-from dotenv import load_dotenv
 import queue
 
 from gmo_ws import GmoWebsocket
 from db import crud, models
 from db.database import SessionLocal, engine
 from utils.custom_exceptions import ConnectionFailedError
-
-# Load .env file
-load_dotenv()
-
-# Set logging.basicConfig
-logging.basicConfig(
-    format="%(asctime)s %(message)s",
-    level=logging.INFO,
-)
-
-logger = logging.getLogger(__name__)
+from utils.logger_utils import LOGGER_FORMAT
 
 
 async def manage_queue(
@@ -26,14 +15,17 @@ async def manage_queue(
     max_orderbook_table_rows: int,
     max_tick_table_rows: int,
     max_ohlcv_table_rows: int,
+    logger: logging.Logger,
+    gmo_ws: GmoWebsocket,
 ):
     while True:
+        logger.debug("Running manage_queue")
         try:
             with SessionLocal() as db:
                 # Save orderbook queue
                 while True:
                     try:
-                        item = gmo_ws.get_orderbook_queue()
+                        item = gmo_ws.get_orderbook_queue_item()
                         crud.insert_board_items(db=db, insert_items=item, max_board_counts=max_orderbook_table_rows)
                     except queue.Empty:
                         break
@@ -41,22 +33,22 @@ async def manage_queue(
                 # Save ticks queue
                 while True:
                     try:
-                        item = gmo_ws.get_ticks_queue()
+                        item = gmo_ws.get_ticks_queue_item()
                         crud.insert_tick_item(db=db, insert_item=item, max_rows=max_tick_table_rows)
                     except queue.Empty:
                         break
 
                 # Create ohlcv
                 crud.create_ohlcv_from_ticks(db=db, symbol=symbol, time_span=time_span, max_rows=max_ohlcv_table_rows)
-            print("manage queue")
             await asyncio.sleep(0.0)
         except asyncio.TimeoutError:
             logger.info("Trade thread has ended with asyncio.TimeoutError")
             raise ConnectionFailedError
 
 
-async def trade(symbol: str):
+async def trade(symbol: str, logger: logging.Logger):
     while True:
+        logger.debug("Running trade")
         try:
             with SessionLocal() as db:
                 # Get Best bid & best ask
@@ -71,7 +63,6 @@ async def trade(symbol: str):
                 logger.info(f"Best Ask (price, size): ({best_ask.price}, {best_ask.size})")
                 logger.info(f"Best Bid (price, size): ({best_bid.price}, {best_bid.size})")
                 logger.info(f"Current ohlcv: {current_ohlcv}")
-            print("trade")
             await asyncio.sleep(0.0)
         except asyncio.TimeoutError:
             logger.info("Trade thread has ended with asyncio.TimeoutError")
@@ -84,6 +75,8 @@ async def run_manage_queue_and_trading(
     max_orderbook_table_rows: int,
     max_tick_table_rows: int,
     max_ohlcv_table_rows: int,
+    logger: logging.Logger,
+    gmo_ws: GmoWebsocket,
 ):
     await asyncio.gather(
         manage_queue(
@@ -92,8 +85,10 @@ async def run_manage_queue_and_trading(
             max_orderbook_table_rows=max_orderbook_table_rows,
             max_tick_table_rows=max_tick_table_rows,
             max_ohlcv_table_rows=max_ohlcv_table_rows,
+            logger=logger,
+            gmo_ws=gmo_ws,
         ),
-        trade(symbol=symbol),
+        trade(symbol=symbol, logger=logger),
     )
 
 
@@ -103,6 +98,8 @@ def main(
     max_orderbook_table_rows: int,
     max_tick_table_rows: int,
     max_ohlcv_table_rows: int,
+    logger: logging.Logger,
+    gmo_ws: GmoWebsocket,
 ):
     try:
         # Initialize sqlite3 in-memory database
@@ -114,6 +111,8 @@ def main(
                 max_orderbook_table_rows=max_orderbook_table_rows,
                 max_tick_table_rows=max_tick_table_rows,
                 max_ohlcv_table_rows=max_ohlcv_table_rows,
+                logger=logger,
+                gmo_ws=gmo_ws,
             )
         )
     except ConnectionFailedError:
@@ -132,6 +131,8 @@ def main(
                 max_orderbook_table_rows=max_orderbook_table_rows,
                 max_tick_table_rows=max_tick_table_rows,
                 max_ohlcv_table_rows=max_ohlcv_table_rows,
+                logger=logger,
+                gmo_ws=gmo_ws,
             )
         )
 
@@ -141,17 +142,20 @@ def main(
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG, format=LOGGER_FORMAT)
+    logger = logging.getLogger(__name__)
     gmo_ws = GmoWebsocket()
     symbol = "BTC_JPY"
     time_span = 5
     max_orderbook_table_rows = 1000
     max_tick_table_rows = 1000
     max_ohlcv_table_rows = 1000
-    while True:
-        main(
-            symbol=symbol,
-            time_span=time_span,
-            max_orderbook_table_rows=max_orderbook_table_rows,
-            max_tick_table_rows=max_tick_table_rows,
-            max_ohlcv_table_rows=max_ohlcv_table_rows,
-        )
+    main(
+        symbol=symbol,
+        time_span=time_span,
+        max_orderbook_table_rows=max_orderbook_table_rows,
+        max_tick_table_rows=max_tick_table_rows,
+        max_ohlcv_table_rows=max_ohlcv_table_rows,
+        logger=logger,
+        gmo_ws=gmo_ws,
+    )
