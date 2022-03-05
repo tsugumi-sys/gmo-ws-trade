@@ -2,11 +2,11 @@ import unittest
 import sys
 from dateutil import parser
 
-from tests.utils import test_engine, SessionLocal
-from tests import response_schemas
+from tests.utils.db_utils import test_engine, SessionLocal
+from tests.utils import response_schemas
 
 sys.path.append("./gmo-websocket/")
-from gmo_websocket.db import crud, models, schemas
+from gmo_hft_bot.db import crud, models, schemas
 
 
 class TestCrudOHLCV(unittest.TestCase):

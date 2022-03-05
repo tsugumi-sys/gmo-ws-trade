@@ -81,10 +81,10 @@ class CustomQueue(Queue):
         self.size.increment(-1)
         return item
 
-    def qsize(self):
+    def qsize(self) -> int:
         """Reliable implementation of multiprocessing.Queue.qsize()"""
         return self.size.value
 
-    def empty(self):
+    def empty(self) -> bool:
         """Reliable implementation of multiprocessing.Queue.empty()"""
         return not self.qsize()

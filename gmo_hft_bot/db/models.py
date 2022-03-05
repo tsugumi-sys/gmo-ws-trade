@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, Float, String
 
-from db.database import Base
+from gmo_hft_bot.db.database import Base
+
+# do not use relative import refere from the issue https://github.com/pallets/flask-sqlalchemy/issues/672
 
 
 class Board(Base):

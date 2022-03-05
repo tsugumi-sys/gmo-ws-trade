@@ -5,7 +5,7 @@ from sqlalchemy.engine.row import Row
 import uuid
 from dateutil import parser
 
-from . import schemas, models
+from gmo_hft_bot.db import schemas, models
 
 
 # Board methods

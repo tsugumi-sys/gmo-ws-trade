@@ -1,15 +1,19 @@
 from typing import Dict
-import logging
-from utils.custom_queue import CustomQueue
 
-logger = logging.getLogger("GmoWebsocketLogger")
+from gmo_hft_bot.utils.custom_queue import CustomQueue
 
 
-class GmoWebsocket:
+class QueueAndTradeManager:
     def __init__(self) -> None:
         self.enable_trade = False
         self.orderbook_queue = CustomQueue()
         self.ticks_queue = CustomQueue()
+
+    def __del__(self):
+        import time
+
+        # Sometime, Broken pipe error raises becase main process finishes faster than Queue.close().
+        time.sleep(0.01)
 
     def _enable_trade(self):
         self.enable_trade = True

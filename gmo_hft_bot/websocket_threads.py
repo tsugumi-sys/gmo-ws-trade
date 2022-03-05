@@ -1,15 +1,16 @@
-from typing import Optional
+from typing import Optional, Tuple
+import multiprocessing
 import websockets
 import asyncio
 import json
 import logging
 
-from gmo_ws import GmoWebsocket
-from utils.custom_exceptions import ConnectionFailedError
-from utils.logger_utils import LOGGER_FORMAT
+from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
+from gmo_hft_bot.utils.custom_exceptions import ConnectionFailedError
+from gmo_hft_bot.utils.logger_utils import LOGGER_FORMAT, worker_configurer
 
 
-async def orderbook_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws: GmoWebsocket):
+async def orderbook_ws(ws_url: str, symbol: str, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager):
     async with websockets.connect(ws_url, logger=logger, ping_timeout=1.0) as ws:
         ws.logger.info("Start orderbook")
         # Subscribe board topic
@@ -20,7 +21,7 @@ async def orderbook_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws:
 
         while True:
             ws.logger.debug("Running Orderbook websockets")
-            ws.logger.debug(f"Orderbook queue count: {gmo_ws.get_orderbook_queue_size()}")
+            ws.logger.debug(f"Orderbook queue count: {queue_and_trade_manager.get_orderbook_queue_size()}")
             try:
                 # Get data
                 res = await ws.recv()
@@ -32,7 +33,7 @@ async def orderbook_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws:
                         ws.logger.error(f"Error response: {res}")
                         continue
                 else:
-                    gmo_ws.add_orderbook_queue(res)
+                    queue_and_trade_manager.add_orderbook_queue(res)
                     await asyncio.sleep(0.0)
             except websockets.exceptions.ConnectionClosed:
                 ws.logger.error("Public websocket connection has been closed.")
@@ -45,7 +46,7 @@ async def orderbook_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws:
                 raise ConnectionFailedError
 
 
-async def tick_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws: GmoWebsocket):
+async def tick_ws(ws_url: str, symbol: str, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager):
     async with websockets.connect(ws_url, logger=logger, ping_timeout=1.0) as ws:
         ws.logger.info("Start Ticks")
         # Subscribe board topic
@@ -59,7 +60,7 @@ async def tick_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws: GmoW
 
         while True:
             ws.logger.debug("Running Tick websockets")
-            ws.logger.debug(f"Ticks queue count: {gmo_ws.get_ticks_queue_size()}")
+            ws.logger.debug(f"Ticks queue count: {queue_and_trade_manager.get_ticks_queue_size()}")
             try:
                 # Get data
                 res = await ws.recv()
@@ -71,7 +72,7 @@ async def tick_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws: GmoW
                         ws.logger.error(f"Error response: {res}")
                         continue
                 else:
-                    gmo_ws.add_ticks_queue(res)
+                    queue_and_trade_manager.add_ticks_queue(res)
                 await asyncio.sleep(0.0)
             except websockets.exceptions.ConnectionClosed:
                 ws.logger.error("Public websocket connection has been closed.")
@@ -84,39 +85,53 @@ async def tick_ws(ws_url: str, symbol: str, logger: logging.Logger, gmo_ws: GmoW
                 raise ConnectionFailedError
 
 
-async def run_multiple_websockets(symbol: str, logger: logging.Logger, gmo_ws: GmoWebsocket):
+async def run_multiple_websockets(symbol: str, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager):
     await asyncio.gather(
-        orderbook_ws(ws_url="wss://api.coin.z.com/ws/public/v1", symbol=symbol, logger=logger, gmo_ws=gmo_ws),
-        tick_ws(ws_url="wss://api.coin.z.com/ws/public/v1", symbol=symbol, logger=logger, gmo_ws=gmo_ws),
+        orderbook_ws(ws_url="wss://api.coin.z.com/ws/public/v1", symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager),
+        tick_ws(ws_url="wss://api.coin.z.com/ws/public/v1", symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager),
     )
 
 
 def main(
     symbol: str,
-    gmo_ws: GmoWebsocket,
-    logger: Optional[logging.Logger] = None,
+    queue_and_trade_manager: QueueAndTradeManager,
+    logging_level: Optional[Tuple[str, int]] = None,
+    logging_queue: Optional[multiprocessing.Queue] = None,
 ):
-    """Websockets thread
+    """Websocket Threads
 
     Args:
         symbol (str): Name of symbol
-        gmo_ws (GmoWebsocket): GmoWebsocket class.
-        logger (Optional[logging.Logger], optional): Pass logger. Defaults to None.
+        queue_and_trade_manager (QueueAndTradeManager): Queue manager of gmo websocket
+        logging_level (Optional[Tuple[str, int]], optional): Logging level. Defaults to None.
+        logging_queue (Optional[multiprocessing.Queue], optional): Logger Queue. Defaults to None.
+
+        [TODO]: Raise error if you use logging queue.
     """
-    if logger is None:
-        logger = logging.getLogger("WebsocketThreadsLogger")
+    if logging_queue is None:
+        logger = logging.getLogger("WebsocketThredsLogger")
+
+        if logging_level is not None:
+            logger.setLevel(logging_level)
+
+    else:
+        logger = logging.getLogger("WebsocketThredsLogger")
+        worker_configurer(logging_queue, logger.getEffectiveLevel())
+
+        if logging_level is not None:
+            logger.setLevel(logging_level)
 
     try:
-        asyncio.run(run_multiple_websockets(symbol=symbol, logger=logger, gmo_ws=gmo_ws))
+        asyncio.run(run_multiple_websockets(symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager))
     except ConnectionFailedError:
-        logger.info("Reconnect websockets")
-        asyncio.run(main(symbol=symbol, logger=logger, gmo_ws=gmo_ws))
+        logger.debug("Reconnect websockets")
+        asyncio.run(main(symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager))
 
 
 if __name__ == "__main__":
-    gmo_ws = GmoWebsocket()
-    logging.basicConfig(level=logging.DEBUG, format=LOGGER_FORMAT)
+    queue_and_trade_manager = QueueAndTradeManager()
+    logging_level = logging.DEBUG
+    logging.basicConfig(level=logging_level, format=LOGGER_FORMAT)
     logger = logging.getLogger(__name__)
     symbol = "BTC_JPY"
-    # while True:
-    main(symbol=symbol, logger=logger, gmo_ws=gmo_ws)
+    main(symbol=symbol, queue_and_trade_manager=queue_and_trade_manager, logging_level=logging_level)
