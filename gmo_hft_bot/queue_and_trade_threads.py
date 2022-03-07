@@ -1,11 +1,16 @@
+import os
+import sys
 import asyncio
 import logging
 import multiprocessing
 import queue
 from typing import Optional, Tuple
 
+from dotenv import load_dotenv
 import sqlalchemy
+import aiohttp
 
+sys.path.append(".")
 from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
 from gmo_hft_bot.db import crud, models
 from gmo_hft_bot.db.database import SessionLocal as SqlSessionLocal, engine
@@ -55,7 +60,7 @@ async def manage_queue(
             raise ConnectionFailedError
 
 
-async def trade(symbol: str, logger: logging.Logger, SessionLocal: sqlalchemy.orm.Session):
+async def trade(symbol: str, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager, SessionLocal: sqlalchemy.orm.Session):
     while True:
         logger.debug("Running trade")
         try:
@@ -75,6 +80,15 @@ async def trade(symbol: str, logger: logging.Logger, SessionLocal: sqlalchemy.or
                     f"Current OHLCV open: {current_ohlcv.open}, high: {current_ohlcv.high}, low: {current_ohlcv.low},"
                     f" close: {current_ohlcv.close}, volume: {current_ohlcv.volume}."
                 )
+
+                logger.info("request")
+
+                request_url, headers = queue_and_trade_manager.test_http_private_request_args()
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(request_url, headers=headers) as response:
+                        res = await response.json()
+
+                logger.info(res)
             await asyncio.sleep(0.0)
         except asyncio.TimeoutError:
             logger.debug("Trade thread has ended with asyncio.TimeoutError")
@@ -102,7 +116,7 @@ async def run_manage_queue_and_trading(
             queue_and_trade_manager=queue_and_trade_manager,
             SessionLocal=SessionLocal,
         ),
-        trade(symbol=symbol, logger=logger, SessionLocal=SessionLocal),
+        trade(symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager, SessionLocal=SessionLocal),
     )
 
 
@@ -175,9 +189,11 @@ def main(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format=LOGGER_FORMAT)
-    logger = logging.getLogger(__name__)
-    queue_and_trade_manager = QueueAndTradeManager()
+    # Load .env file
+    load_dotenv()
+
+    logging.basicConfig(level=logging.INFO, format=LOGGER_FORMAT)
+    queue_and_trade_manager = QueueAndTradeManager(api_key=os.environ["EXCHANGE_API_KEY"], api_secret=os.environ["EXCHANGE_API_SECRET"])
     symbol = "BTC_JPY"
     time_span = 5
     max_orderbook_table_rows = 1000
@@ -189,6 +205,5 @@ if __name__ == "__main__":
         max_orderbook_table_rows=max_orderbook_table_rows,
         max_tick_table_rows=max_tick_table_rows,
         max_ohlcv_table_rows=max_ohlcv_table_rows,
-        logger=logger,
         queue_and_trade_manager=queue_and_trade_manager,
     )

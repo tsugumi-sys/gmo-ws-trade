@@ -1,8 +1,11 @@
 import logging
 from typing import Tuple, Optional
 import multiprocessing
+import os
+import sys
 from dotenv import load_dotenv
 
+sys.path.append(".")
 from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
 from gmo_hft_bot import websocket_threads
 from gmo_hft_bot import queue_and_trade_threads
@@ -85,7 +88,7 @@ if __name__ == "__main__":
     logging_queue = multiprocessing.Queue(-1)
     logging.basicConfig(level=logging_level, format=LOGGER_FORMAT)
 
-    queue_and_trade_manager = QueueAndTradeManager()
+    queue_and_trade_manager = QueueAndTradeManager(api_key=os.environ["EXCHANGE_API_KEY"], api_secret=os.environ["EXCHANGE_API_SECRET"])
     symbol = "BTC_JPY"
     time_span = 5
     max_orderbook_table_rows = 1000

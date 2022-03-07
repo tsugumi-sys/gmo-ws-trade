@@ -9,7 +9,7 @@ sys.path.append("./gmo_websocket/")
 from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
 
 from gmo_hft_bot.queue_and_trade_threads import manage_queue
-from gmo_hft_bot.db import crud, models
+from gmo_hft_bot.db import models
 
 
 class TestQueueAndTradeThreads(unittest.TestCase):
