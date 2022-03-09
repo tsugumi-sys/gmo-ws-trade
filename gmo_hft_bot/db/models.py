@@ -40,3 +40,15 @@ class OHLCV(Base):
     close = Column(Float)
     volume = Column(Float)
     symbol = Column(String(10), index=True)
+
+
+class PREDICT(Base):
+    __tablename__ = "predict"
+    # generate id using uuid
+    id = Column(String(128), primary_key=True)
+    timestamp = Column(Integer, index=True)
+    side = Column(String(10))
+    price = Column(Float)
+    size = Column(Float)
+    predict_value = Column(Float)
+    symbol = Column(String(10), index=True)

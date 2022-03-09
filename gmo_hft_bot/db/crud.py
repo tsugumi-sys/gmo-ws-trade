@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from sqlalchemy.engine.row import Row
 import uuid
+import time
 from dateutil import parser
 
 from gmo_hft_bot.db import schemas, models
@@ -477,3 +478,19 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
             ohlcv_insert_items.append(ohlcv_model)
     insert_ohlcv_items(db=db, insert_items=ohlcv_insert_items, max_rows=max_rows)
     update_ohlcv_items(db=db, update_items=ohlcv_update_items)
+
+
+# PREDICT methods
+def insert_predict_items(db: Session, insert_items: List[Dict]):
+    predict_items = []
+    for item in insert_items:
+        item["id"] = uuid.uuid4().hex
+        item["timestamp"] = round(time.time())
+        predict_items.append(models.PREDICT(**item))
+
+    db.add_all(predict_items)
+    db.commit()
+
+
+def get_predict_items(db: Session, symbol: str):
+    return db.query(models.PREDICT).filter(models.PREDICT.symbol == symbol).order_by(models.PREDICT.timestamp).all()

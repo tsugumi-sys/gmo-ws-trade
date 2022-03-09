@@ -30,7 +30,7 @@ class TestQueueAndTradeThreads(unittest.TestCase):
 
     def test_manage_queue(self):
         # Check this! https://deniscapeto.com/2021/03/06/how-to-test-a-while-true-in-python/
-        queue_and_trade_manager = QueueAndTradeManager()
+        queue_and_trade_manager = QueueAndTradeManager(api_key="cscsd", api_secret="acsdca")
         loop = asyncio.get_event_loop()
         loop.run_until_complete(
             manage_queue(

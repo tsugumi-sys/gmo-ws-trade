@@ -61,3 +61,13 @@ class OHLCV(OHLCVBase):
 
     class Config:
         orm_mode = True
+
+
+class PREDICT(BaseModel):
+    id: str
+    timestamp: int
+    side: str
+    price: float
+    size: float
+    predict_valie: float
+    symbol: str

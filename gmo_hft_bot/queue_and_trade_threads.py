@@ -29,7 +29,6 @@ async def manage_queue(
     SessionLocal: sqlalchemy.orm.Session,
 ):
     while True:
-        logger.debug("Running manage_queue")
         try:
             with SessionLocal() as db:
                 # Save orderbook queue
@@ -62,7 +61,6 @@ async def manage_queue(
 
 async def trade(symbol: str, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager, SessionLocal: sqlalchemy.orm.Session):
     while True:
-        logger.debug("Running trade")
         try:
             with SessionLocal() as db:
                 # Get Best bid & best ask
@@ -81,14 +79,16 @@ async def trade(symbol: str, logger: logging.Logger, queue_and_trade_manager: Qu
                     f" close: {current_ohlcv.close}, volume: {current_ohlcv.volume}."
                 )
 
-                logger.info("request")
-
                 request_url, headers = queue_and_trade_manager.test_http_private_request_args()
                 async with aiohttp.ClientSession() as session:
                     async with session.get(request_url, headers=headers) as response:
-                        res = await response.json()
+                        _ = await response.json()
 
-                logger.info(res)
+                # Save predict item for local backtest
+                buy_item = {"side": "BUY", "size": 0.01, "price": best_bid.price, "predict_value": 1.0, "symbol": symbol}
+                sell_item = {"side": "SELL", "size": 0.01, "price": best_ask.price, "predict_value": 1.0, "symbol": symbol}
+                crud.insert_predict_items(db=db, insert_items=[buy_item, sell_item])
+
             await asyncio.sleep(0.0)
         except asyncio.TimeoutError:
             logger.debug("Trade thread has ended with asyncio.TimeoutError")
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     # Load .env file
     load_dotenv()
 
-    logging.basicConfig(level=logging.INFO, format=LOGGER_FORMAT)
+    logging.basicConfig(level=logging.DEBUG, format=LOGGER_FORMAT)
     queue_and_trade_manager = QueueAndTradeManager(api_key=os.environ["EXCHANGE_API_KEY"], api_secret=os.environ["EXCHANGE_API_SECRET"])
     symbol = "BTC_JPY"
     time_span = 5
