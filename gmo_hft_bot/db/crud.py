@@ -471,7 +471,7 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
     ohlcv_insert_items = []
     ohlcv_update_items = []
     for item in ohlcv_items:
-        ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[5], symbol=symbol)
+        ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[5] * time_span, symbol=symbol)
         if _check_if_ohclv_stored(db, timestamp=ohlcv_model.timestamp) is True:
             ohlcv_update_items.append(ohlcv_model)
         else:

@@ -14,6 +14,10 @@ run_trade:
 test:
 	poetry run python -m unittest -v
 
+.PHONY visualize:
+visualize:
+	poetry run python ./backtest/main.py
+
 .PHONY delete_pycache:
 delete_pycache:
 	find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf

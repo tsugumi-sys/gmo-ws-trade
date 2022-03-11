@@ -5,6 +5,7 @@ import logging
 import multiprocessing
 import queue
 from typing import Optional, Tuple
+import time
 
 from dotenv import load_dotenv
 import sqlalchemy
@@ -59,7 +60,20 @@ async def manage_queue(
             raise ConnectionFailedError
 
 
-async def trade(symbol: str, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager, SessionLocal: sqlalchemy.orm.Session):
+async def trade(symbol: str, trade_time_span: int, logger: logging.Logger, queue_and_trade_manager: QueueAndTradeManager, SessionLocal: sqlalchemy.orm.Session):
+    """Trade threads
+
+    Args:
+        symbol (str): Name of symbol
+        trade_time_span (int): Time span of trade. seconds
+        logger (logging.Logger): logger
+        queue_and_trade_manager (QueueAndTradeManager): Quene and trade manager
+        SessionLocal (sqlalchemy.orm.Session): Session of sqlalchemy
+
+    Raises:
+        ConnectionFailedError: Raise if threads stopped.
+    """
+    before_timestamp_per_span = None
     while True:
         try:
             with SessionLocal() as db:
@@ -69,25 +83,31 @@ async def trade(symbol: str, logger: logging.Logger, queue_and_trade_manager: Qu
                 # Get ohlcv
                 ohlcv = crud.get_ohlcv_with_symbol(db=db, symbol=symbol, limit=1, ascending=False)
 
+            current_timestamp_per_span = int(time.time()) // trade_time_span
             if len(buy_board_items) > 0 and len(sell_board_items) > 0 and len(ohlcv) > 0:
-                best_bid, best_ask = buy_board_items[-1], sell_board_items[0]
-                current_ohlcv = ohlcv[0]
-                logger.debug(f"Best Ask (price, size): ({best_ask.price}, {best_ask.size})")
-                logger.debug(f"Best Bid (price, size): ({best_bid.price}, {best_bid.size})")
-                logger.debug(
-                    f"Current OHLCV open: {current_ohlcv.open}, high: {current_ohlcv.high}, low: {current_ohlcv.low},"
-                    f" close: {current_ohlcv.close}, volume: {current_ohlcv.volume}."
-                )
+                if before_timestamp_per_span is not None and current_timestamp_per_span > before_timestamp_per_span:
+                    print(before_timestamp_per_span, current_timestamp_per_span, round(time.time()))
 
-                request_url, headers = queue_and_trade_manager.test_http_private_request_args()
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(request_url, headers=headers) as response:
-                        _ = await response.json()
+                    best_bid, best_ask = buy_board_items[-1], sell_board_items[0]
+                    current_ohlcv = ohlcv[0]
+                    logger.debug(f"Best Ask (price, size): ({best_ask.price}, {best_ask.size})")
+                    logger.debug(f"Best Bid (price, size): ({best_bid.price}, {best_bid.size})")
+                    logger.debug(
+                        f"Current OHLCV open: {current_ohlcv.open}, high: {current_ohlcv.high}, low: {current_ohlcv.low},"
+                        f" close: {current_ohlcv.close}, volume: {current_ohlcv.volume}."
+                    )
 
-                # Save predict item for local backtest
-                buy_item = {"side": "BUY", "size": 0.01, "price": best_bid.price, "predict_value": 1.0, "symbol": symbol}
-                sell_item = {"side": "SELL", "size": 0.01, "price": best_ask.price, "predict_value": 1.0, "symbol": symbol}
-                crud.insert_predict_items(db=db, insert_items=[buy_item, sell_item])
+                    request_url, headers = queue_and_trade_manager.test_http_private_request_args()
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(request_url, headers=headers) as response:
+                            _ = await response.json()
+
+                    # Save predict item for local backtest
+                    buy_item = {"side": "BUY", "size": 0.01, "price": best_bid.price, "predict_value": 1.0, "symbol": symbol}
+                    sell_item = {"side": "SELL", "size": 0.01, "price": best_ask.price, "predict_value": 1.0, "symbol": symbol}
+                    crud.insert_predict_items(db=db, insert_items=[buy_item, sell_item])
+
+            before_timestamp_per_span = current_timestamp_per_span
 
             await asyncio.sleep(0.0)
         except asyncio.TimeoutError:
@@ -116,7 +136,7 @@ async def run_manage_queue_and_trading(
             queue_and_trade_manager=queue_and_trade_manager,
             SessionLocal=SessionLocal,
         ),
-        trade(symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager, SessionLocal=SessionLocal),
+        trade(symbol=symbol, trade_time_span=time_span, logger=logger, queue_and_trade_manager=queue_and_trade_manager, SessionLocal=SessionLocal),
     )
 
 
@@ -192,7 +212,7 @@ if __name__ == "__main__":
     # Load .env file
     load_dotenv()
 
-    logging.basicConfig(level=logging.DEBUG, format=LOGGER_FORMAT)
+    logging.basicConfig(level=logging.INFO, format=LOGGER_FORMAT)
     queue_and_trade_manager = QueueAndTradeManager(api_key=os.environ["EXCHANGE_API_KEY"], api_secret=os.environ["EXCHANGE_API_SECRET"])
     symbol = "BTC_JPY"
     time_span = 5

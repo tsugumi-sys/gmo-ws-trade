@@ -8,7 +8,7 @@ sys.path.append(".")
 from gmo_hft_bot.db.database import SessionLocal
 from gmo_hft_bot.db import crud
 from backtest.visualize.ohlcv import ohlcv_plot
-from backtest.utils.utils import get_ohlcv_df, get_predict_df
+from backtest.utils.utils import get_ohlcv_df, get_predict_df, match_timestamp_for_ohlcv
 
 
 def main():
@@ -22,7 +22,12 @@ def main():
     # axes = axes.flatten()
 
     ohlcv_df = get_ohlcv_df(ohlcv_data, time_span=5)
-    predict_df = get_predict_df(predict_data)
+    buy_df, sell_df = get_predict_df(predict_data)
+    timestamped_buy_df = match_timestamp_for_ohlcv(ohlcv_df, buy_df)
+    timestamped_sell_df = match_timestamp_for_ohlcv(ohlcv_df, sell_df)
+
+    print(timestamped_buy_df.head(20))
+    print(timestamped_sell_df.head(20))
 
     _, ax = plt.subplots(figsize=(16, 8))
     ohlcv_plot(ax, ohlcv_df)
