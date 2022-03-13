@@ -33,6 +33,7 @@ class Tick(Base):
 class OHLCV(Base):
     __tablename__ = "ohlcv"
 
+    # Unix timestamp (s).
     timestamp = Column(Integer, primary_key=True, index=True)
     open = Column(Float)
     high = Column(Float)
@@ -46,6 +47,7 @@ class PREDICT(Base):
     __tablename__ = "predict"
     # generate id using uuid
     id = Column(String(128), primary_key=True)
+    # Unix timestamp (s).
     timestamp = Column(Integer, index=True)
     side = Column(String(10))
     price = Column(Float)

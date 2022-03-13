@@ -73,15 +73,17 @@ def ohlcv_plot(ax, df):
     # 出来高目盛が価格目盛にかぶらないよう調整
     ymax = df["volume"].max()
     axv.set_ylim(0, ymax * 5)
-    ytick = ymax // 3
-    tmp = 0
-    cnt = 0
-    while ytick - tmp > 0:
-        cnt += 1
-        ytick -= tmp
-        tmp = ytick % (10**cnt)
+    # ytick = ymax // 3
+    # tmp = 0
+    # cnt = 0
+    # while ytick - tmp > 0:
+    #     cnt += 1
+    #     ytick -= tmp
+
+    #     tmp = ytick % (10**cnt)
+
     axv.set_axisbelow(True)
-    axv.set_yticks(np.arange(0, ymax, ytick))
+    axv.set_yticks(np.arange(0, ymax, 10))
     axv.tick_params(left=True, labelleft=True, right=False, labelright=False)
     axv.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:,}".format(int(x))))
 

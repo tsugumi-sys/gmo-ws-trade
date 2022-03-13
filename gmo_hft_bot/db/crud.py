@@ -401,7 +401,6 @@ def insert_ohlcv_items(db: Session, insert_items: List[schemas.OHLCVCreate], max
     count_ohlcv = _count_ohlcv(db=db)
     if count_ohlcv + len(insert_items) - 1 > max_rows:
         query_limit = count_ohlcv + len(insert_items) - max_rows + 1
-        print(query_limit)
         delete_items = get_ohlcv(db=db, limit=query_limit, ascending=True)
         delete_ohlcv_items(db=db, delete_items=delete_items)
 
@@ -460,14 +459,15 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
                 cast(timestamp/(1000*:time_span) as int) as open_time,
                 min(timestamp)
         from tick
-        where tick.symbol= :symbol
+        where tick.symbol= :symbol and tick.timestamp > :min_unix_timestamp
         group by open_time
         order by open_time desc
-        limit 4
         """
     )
+    # [TODO]: filter ticks by timestamp
+    min_unix_timestamp = (round(time.time()) // time_span - 1) * time_span * 1000
 
-    ohlcv_items = db.execute(stat, {"symbol": symbol, "time_span": time_span}).all()
+    ohlcv_items = db.execute(stat, {"symbol": symbol, "time_span": time_span, "min_unix_timestamp": min_unix_timestamp}).all()
     ohlcv_insert_items = []
     ohlcv_update_items = []
     for item in ohlcv_items:
@@ -494,3 +494,9 @@ def insert_predict_items(db: Session, insert_items: List[Dict]):
 
 def get_predict_items(db: Session, symbol: str):
     return db.query(models.PREDICT).filter(models.PREDICT.symbol == symbol).order_by(models.PREDICT.timestamp).all()
+
+
+# Predict calculation
+def get_prediction_info(symbol: str) -> schemas.PreidictInfo:
+    # Do predict calculation.
+    return schemas.PreidictInfo(buy=True, sell=True, buy_predict_value=1.0, sell_predict_value=1.0)

@@ -14,8 +14,8 @@ run_trade:
 test:
 	poetry run python -m unittest -v
 
-.PHONY visualize:
-visualize:
+.PHONY run_backtest:
+run_backtest:
 	poetry run python ./backtest/main.py
 
 .PHONY delete_pycache:

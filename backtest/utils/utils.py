@@ -16,7 +16,7 @@ def get_ohlcv_df(ohlcv_data: List[models.OHLCV], time_span: int) -> pd.DataFrame
         time_span (int): seconds.
 
     Returns:
-        pd.DataFrame: _description_
+        pd.DataFrame: pandas dataframe with the columns timestamp, open, high, low, close, volume
     """
     data = {"timestamp": [], "open": [], "high": [], "low": [], "close": [], "volume": []}
     for item in ohlcv_data:
@@ -42,7 +42,7 @@ def get_predict_df(predict_data: List[models.PREDICT]) -> Tuple[pd.DataFrame, pd
         predict_data (List[models.PREDICT]): predict data
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame]: buy_df, sell_df
+        Tuple[pd.DataFrame, pd.DataFrame]: buy_df, sell_df with columns timestamp, side, price, size, predict_value, symbol
     """
     data = {"timestamp": [], "side": [], "price": [], "size": [], "predict_value": [], "symbol": []}
     for item in predict_data:
@@ -85,4 +85,4 @@ def match_timestamp_for_ohlcv(ohlcv_df: pd.DataFrame, target_df: pd.DataFrame, t
             target_row = target_row.iloc[0, :]
             matched_timestamp_df.loc[idx, column_names] = target_row
 
-    return matched_timestamp_df
+    return matched_timestamp_df.set_index("timestamp")

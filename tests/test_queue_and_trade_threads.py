@@ -30,21 +30,21 @@ class TestQueueAndTradeThreads(unittest.TestCase):
 
     def test_manage_queue(self):
         # Check this! https://deniscapeto.com/2021/03/06/how-to-test-a-while-true-in-python/
-        queue_and_trade_manager = QueueAndTradeManager(api_key="cscsd", api_secret="acsdca")
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            manage_queue(
-                symbol=self.dummy_symbol,
-                time_span=self.time_span,
-                max_orderbook_table_rows=self.max_orderbook_table_rows,
-                max_tick_table_rows=self.max_tick_table_rows,
-                max_ohlcv_table_rows=self.max_ohlcv_table_rows,
-                logger=self.logger,
-                queue_and_trade_manager=queue_and_trade_manager,
-                SessionLocal=TestSessionLocal,
-            )
-        )
-        loop.close()
+        # queue_and_trade_manager = QueueAndTradeManager(api_key="cscsd", api_secret="acsdca")
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(
+        #     manage_queue(
+        #         symbol=self.dummy_symbol,
+        #         time_span=self.time_span,
+        #         max_orderbook_table_rows=self.max_orderbook_table_rows,
+        #         max_tick_table_rows=self.max_tick_table_rows,
+        #         max_ohlcv_table_rows=self.max_ohlcv_table_rows,
+        #         logger=self.logger,
+        #         queue_and_trade_manager=queue_and_trade_manager,
+        #         SessionLocal=TestSessionLocal,
+        #     )
+        # )
+        # loop.close()
         print("unko")
 
 
