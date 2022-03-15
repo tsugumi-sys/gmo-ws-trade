@@ -4,8 +4,8 @@ import sys
 
 sys.path.append(".")
 from backtest.utils.utils import get_ohlcv_df
-from gmo_hft_bot.db.database import SessionLocal
 from gmo_hft_bot.db.crud import get_ohlcv_with_symbol
+from gmo_hft_bot.db.database import initialize_database
 
 
 def volume_plot(ax, ohlcv_data):
@@ -93,6 +93,7 @@ def ohlcv_plot(ax, df):
 def main():
     symbol = "BTCUSDT"
 
+    _, SessionLocal = initialize_database("sqlite:///example.db")
     with SessionLocal() as db:
         ohlcv_data = get_ohlcv_with_symbol(db=db, symbol=symbol)
 

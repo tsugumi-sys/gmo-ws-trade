@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import sqlalchemy.orm  # noqa: F401
 
 sys.path.append(".")
-from gmo_hft_bot.db.database import SessionLocal
+from gmo_hft_bot.db.database import initialize_database
 from gmo_hft_bot.db import crud
 from backtest.visualize.ohlcv import ohlcv_plot
 from backtest.utils.utils import get_ohlcv_df, get_predict_df, match_timestamp_for_ohlcv
@@ -15,6 +15,7 @@ from backtest.visualize.backtest_visualize import cum_return_plot, position_chan
 
 def main():
     symbol = "BTC_JPY"
+    _, SessionLocal = initialize_database(uri="sqlite:///example.db")
 
     with SessionLocal() as db:
         ohlcv_data = crud.get_ohlcv_with_symbol(db=db, symbol=symbol)
