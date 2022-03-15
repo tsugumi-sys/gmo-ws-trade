@@ -3,13 +3,16 @@ import unittest
 import sys
 from dateutil import parser
 
-from tests.utils.db_utils import test_engine, SessionLocal
 from tests.utils import response_schemas
 
 sys.path.append("./gmo-websocket/")
 from gmo_hft_bot.db import crud, models, schemas
+from gmo_hft_bot.db.database import initialize_database
+
+database_engine, SessionLocal = initialize_database(uri=None)
 
 
+# [TODO] timestamp assertion occasionally fails because of the slip of unix time.
 class TestCrudOHLCV(unittest.TestCase):
     def __init__(self, methodName: str = ...) -> None:
         super().__init__(methodName)
@@ -17,7 +20,7 @@ class TestCrudOHLCV(unittest.TestCase):
         self.dummy_timestamps = []
 
     def setUp(self) -> None:
-        models.Base.metadata.create_all(test_engine)
+        models.Base.metadata.create_all(database_engine)
         # Create dummy tick data.
         now = datetime.now(timezone.utc)
         dummy_timestamp1 = "{}Z".format(now.isoformat()[:-9])
@@ -67,7 +70,7 @@ class TestCrudOHLCV(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.dummy_timestamps = []
-        models.Base.metadata.drop_all(test_engine)
+        models.Base.metadata.drop_all(database_engine)
 
     def test_count_ohlcv(self):
         with SessionLocal() as db:

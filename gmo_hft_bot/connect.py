@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 
 sys.path.append(".")
 from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
-from gmo_hft_bot import websocket_threads
-from gmo_hft_bot import queue_and_trade_threads
+from gmo_hft_bot import websocket_threads, queue_and_trade_threads
 from gmo_hft_bot.utils.logger_utils import LOGGER_FORMAT, listener_configurer, listener_process
 
 # Load .env file
@@ -41,6 +40,7 @@ def sub_processes(
     queue_and_trade_manager: QueueAndTradeManager,
     logging_level: Tuple[str, int],
     logging_queue: multiprocessing.Queue,
+    database_uri: Optional[str] = None,
 ) -> Tuple[multiprocessing.Process, multiprocessing.Process]:
     """Sub processes. Logging process and manage_queue_and_trade process.
 
@@ -74,7 +74,7 @@ def sub_processes(
             max_tick_table_rows,
             max_ohlcv_table_rows,
             queue_and_trade_manager,
-            None,  # SessionLocal
+            database_uri,
             logging_level,
             logging_queue,
         ),
@@ -104,6 +104,7 @@ if __name__ == "__main__":
         queue_and_trade_manager=queue_and_trade_manager,
         logging_level=logging_level,
         logging_queue=logging_queue,
+        database_uri="sqlite:///example.db",
     )
 
     logging_process.start()

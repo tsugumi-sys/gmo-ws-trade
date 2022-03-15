@@ -14,7 +14,7 @@ import aiohttp
 sys.path.append(".")
 from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
 from gmo_hft_bot.db import crud, models
-from gmo_hft_bot.db.database import SessionLocal as SqlSessionLocal, engine
+from gmo_hft_bot.db.database import initialize_database
 from gmo_hft_bot.utils.custom_exceptions import ConnectionFailedError
 from gmo_hft_bot.utils.logger_utils import LOGGER_FORMAT, worker_configurer
 
@@ -177,7 +177,7 @@ def main(
     max_tick_table_rows: int,
     max_ohlcv_table_rows: int,
     queue_and_trade_manager: QueueAndTradeManager,
-    SessionLocal: Optional[sqlalchemy.orm.Session] = None,
+    database_uri: Optional[str] = None,
     logging_level: Optional[Tuple[str, int]] = None,
     logging_queue: Optional[multiprocessing.Queue] = None,
 ):
@@ -194,12 +194,12 @@ def main(
         if logging_level is not None:
             logger.setLevel(logging_level)
 
-    if SessionLocal is None:
-        SessionLocal = SqlSessionLocal
+    # Initialize database
+    database_engine, SessionLocal = initialize_database(uri=database_uri)
 
     try:
         # Initialize sqlite3 in-memory database
-        models.Base.metadata.create_all(engine)
+        models.Base.metadata.create_all(database_engine)
         asyncio.run(
             run_manage_queue_and_trading(
                 symbol=symbol,
@@ -215,10 +215,10 @@ def main(
     except ConnectionFailedError:
         # bybit_ws.is_db_refreshed = False
         # Clear in-memory DB
-        models.Base.metadata.drop_all(engine)
+        models.Base.metadata.drop_all(database_engine)
 
         # Initialize sqlite3 in-memory DB
-        models.Base.metadata.create_all(engine)
+        models.Base.metadata.create_all(database_engine)
 
         logger.debug("Rerun websockets_threads")
         asyncio.run(
@@ -235,7 +235,7 @@ def main(
         )
 
     # Clear in-memory DB again for next try
-    models.Base.metadata.drop_all(engine)
+    models.Base.metadata.drop_all(database_engine)
 
 
 if __name__ == "__main__":
@@ -244,6 +244,8 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG, format=LOGGER_FORMAT)
     queue_and_trade_manager = QueueAndTradeManager(api_key=os.environ["EXCHANGE_API_KEY"], api_secret=os.environ["EXCHANGE_API_SECRET"])
+
+    database_engine, session_local = initialize_database(uri="sqlite:///example.db")
     symbol = "BTC_JPY"
     time_span = 5
     max_orderbook_table_rows = 1000
@@ -256,4 +258,6 @@ if __name__ == "__main__":
         max_tick_table_rows=max_tick_table_rows,
         max_ohlcv_table_rows=max_ohlcv_table_rows,
         queue_and_trade_manager=queue_and_trade_manager,
+        database_engine=database_engine,
+        SessionLocal=session_local,
     )

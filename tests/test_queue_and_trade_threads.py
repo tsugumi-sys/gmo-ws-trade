@@ -1,15 +1,17 @@
 import unittest
-import asyncio
+
+# import asyncio
 import logging
 import sys
 
-from tests.utils.db_utils import test_engine, SessionLocal as TestSessionLocal
-
 sys.path.append("./gmo_websocket/")
-from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
+# from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
 
-from gmo_hft_bot.queue_and_trade_threads import manage_queue
+# from gmo_hft_bot.queue_and_trade_threads import manage_queue
 from gmo_hft_bot.db import models
+from gmo_hft_bot.db.database import initialize_database
+
+database_engine, SessionLocal = initialize_database(uri=None)
 
 
 class TestQueueAndTradeThreads(unittest.TestCase):
@@ -23,10 +25,10 @@ class TestQueueAndTradeThreads(unittest.TestCase):
         self.logger = logging.getLogger("TestLogger")
 
     def setUp(self) -> None:
-        models.Base.metadata.create_all(test_engine)
+        models.Base.metadata.create_all(database_engine)
 
     def tearDown(self) -> None:
-        models.Base.metadata.drop_all(test_engine)
+        models.Base.metadata.drop_all(database_engine)
 
     def test_manage_queue(self):
         # Check this! https://deniscapeto.com/2021/03/06/how-to-test-a-while-true-in-python/

@@ -1,11 +1,13 @@
 import unittest
 import sys
 
-from tests.utils.db_utils import test_engine, SessionLocal
 from tests.utils import response_schemas
 
 sys.path.append("./gmo_websocket/")
 from gmo_hft_bot.db import crud, models
+from gmo_hft_bot.db.database import initialize_database
+
+database_engine, SessionLocal = initialize_database(uri=None)
 
 
 class TestCrudBoard(unittest.TestCase):
@@ -14,10 +16,10 @@ class TestCrudBoard(unittest.TestCase):
         self.dummy_symbol = "Uncoin"
 
     def setUp(self) -> None:
-        models.Base.metadata.create_all(test_engine)
+        models.Base.metadata.create_all(database_engine)
 
     def tearDown(self) -> None:
-        models.Base.metadata.drop_all(test_engine)
+        models.Base.metadata.drop_all(database_engine)
 
     def test_count_board_rows(self):
         # Create dummy item
