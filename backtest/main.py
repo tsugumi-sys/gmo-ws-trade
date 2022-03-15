@@ -28,17 +28,24 @@ def main():
     buy_df, sell_df = get_predict_df(predict_data)
     timestamped_buy_df = match_timestamp_for_ohlcv(ohlcv_df, buy_df, time_span)
     timestamped_sell_df = match_timestamp_for_ohlcv(ohlcv_df, sell_df, time_span)
+    result_online = richman_backtest(ohlcv_df, buy_df=timestamped_buy_df, sell_df=timestamped_sell_df)
 
-    result = richman_backtest(ohlcv_df, buy_df=timestamped_buy_df, sell_df=timestamped_sell_df)
+    # local data backtest
+    pips = 500
+    timestamped_buy_df["price"] = ohlcv_df.loc[:, "close"] - pips
+    timestamped_sell_df["price"] = ohlcv_df.loc[:, "close"] + pips
+    result_local = richman_backtest(ohlcv_df, buy_df=timestamped_buy_df, sell_df=timestamped_sell_df)
 
-    _, ax = plt.subplots(2, 2, figsize=(10, 10))
+    _, ax = plt.subplots(4, 2, figsize=(20, 20))
     ax = ax.flatten()
-    ohlcv_plot(ax[0], ohlcv_df)
-    cum_return_plot(ax[1], result["cumulative_return"])
-    position_change_plot(ax[2], result["position"])
-    position_change_average_plot(ax[3], result["position"])
+    cum_return_plot(ax[0], result_online["cumulative_return"], "Online")
+    cum_return_plot(ax[1], result_local["cumulative_return"], "Local")
+    position_change_plot(ax[2], result_online["position"], "Online")
+    position_change_plot(ax[3], result_local["position"], "Local")
+    position_change_average_plot(ax[4], result_online["position"], "Online")
+    position_change_average_plot(ax[5], result_local["position"], "Local")
+    ohlcv_plot(ax[6], ohlcv_df)
     plt.show()
 
 
-if __name__ == "__main__":
-    main()
+main()
