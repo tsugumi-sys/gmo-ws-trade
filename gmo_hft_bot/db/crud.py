@@ -5,6 +5,7 @@ from sqlalchemy.engine.row import Row
 import uuid
 import time
 from dateutil import parser
+import pandas as pd
 
 from gmo_hft_bot.db import schemas, models
 
@@ -337,7 +338,9 @@ def _check_if_ohclv_stored(db: Session, timestamp: int) -> bool:
     return True if count_item == 1 else False
 
 
-def get_ohlcv_with_symbol(db: Session, symbol: Optional[str] = None, limit: Optional[int] = None, ascending: bool = True) -> List[schemas.OHLCV]:
+def get_ohlcv_with_symbol(
+    db: Session, symbol: Optional[str] = None, limit: Optional[int] = None, ascending: bool = True, as_df: bool = False
+) -> List[schemas.OHLCV]:
     """get all ohlcv of a symbol
 
     Args:
@@ -354,23 +357,40 @@ def get_ohlcv_with_symbol(db: Session, symbol: Optional[str] = None, limit: Opti
 
     if ascending:
         if limit is None:
-            return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp).all()
+            if as_df is True:
+                stat = text("select * from ohlcv where ohlcv.symbol = :symbol order by timestamp")
+                return pd.read_sql(stat, db.bind, params={"symbol": symbol})
+            else:
+                return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp).all()
         else:
-            return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp).limit(limit).all()
+            if as_df is True:
+                stat = text("select * from ohlcv where ohlcv.symbol = :symbol limit :limit order by timestamp")
+                return pd.read_sql(stat, db.bind, params={"symbol": symbol, "limit": limit})
+            else:
+                return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp).limit(limit).all()
     else:
         if limit is None:
-            return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp.desc()).all()
+            if as_df is True:
+                stat = text("select * from ohlcv where ohlcv.symbol = :symbol order by timestamp desc")
+                return pd.read_sql(stat, db.bind, params={"symbol": symbol})
+            else:
+                return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp.desc()).all()
         else:
-            return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp.desc()).limit(limit).all()
+            if as_df is True:
+                stat = text("select * from ohlcv where ohlcv.symbol = :symbol limit :limit order by timestamp desc")
+                return pd.read_sql(stat, db.bind, params={"symbol": symbol, "limit": limit})
+            else:
+                return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp.desc()).limit(limit).all()
 
 
-def get_ohlcv(db: Session, limit: Optional[int] = None, ascending: bool = True) -> List[schemas.OHLCV]:
+def get_ohlcv(db: Session, limit: Optional[int] = None, ascending: bool = True, as_df: bool = False) -> List[schemas.OHLCV]:
     """get all ohlcv
 
     Args:
         db (Session): Session of sqlalchemy
         limit (Optional[int], optional): limit. Defaults to None.
         ascending (bool, optional): ascending order. Defaults to True.
+        as_df (bool, optional): Get data as dataframe (timestamp is index column).
 
     Returns:
         List[schemas.OHLCV]: Session of sqlalchemy
@@ -380,14 +400,28 @@ def get_ohlcv(db: Session, limit: Optional[int] = None, ascending: bool = True) 
 
     if ascending:
         if limit is None:
-            return db.query(models.OHLCV).order_by(models.OHLCV.timestamp).all()
+            if as_df is True:
+                return pd.read_sql("select * from ohlcv order by timestamp", db.bind)
+            else:
+                return db.query(models.OHLCV).order_by(models.OHLCV.timestamp).all()
         else:
-            return db.query(models.OHLCV).order_by(models.OHLCV.timestamp).limit(limit).all()
+            if as_df is True:
+                stat = text("select * from ohlcv order by timestamp limit :limit")
+                return pd.read_sql(stat, db.bind, params={"limit": limit})
+            else:
+                return db.query(models.OHLCV).order_by(models.OHLCV.timestamp).limit(limit).all()
     else:
         if limit is None:
-            return db.query(models.OHLCV).order_by(models.OHLCV.timestamp.desc()).all()
+            if as_df is True:
+                return pd.read_sql("select * from ohlcv order by timestamp desc", db.bind)
+            else:
+                return db.query(models.OHLCV).order_by(models.OHLCV.timestamp.desc()).all()
         else:
-            return db.query(models.OHLCV).order_by(models.OHLCV.timestamp.desc()).limit(limit).all()
+            if as_df is True:
+                stat = text("select * from ohlcv order by timestamp desc limit :limit")
+                return pd.read_sql(stat, db.bind, params={"limit": limit})
+            else:
+                return db.query(models.OHLCV).order_by(models.OHLCV.timestamp.desc()).limit(limit).all()
 
 
 def insert_ohlcv_items(db: Session, insert_items: List[schemas.OHLCVCreate], max_rows: int = 100) -> None:
@@ -497,6 +531,38 @@ def get_predict_items(db: Session, symbol: str):
 
 
 # Predict calculation
-def get_prediction_info(symbol: str) -> schemas.PreidictInfo:
+def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
     # Do predict calculation.
-    return schemas.PreidictInfo(buy=True, sell=True, buy_predict_value=1.0, sell_predict_value=1.0)
+
+    # Get Best bid & best ask
+    buy_board_items, sell_board_items = get_current_board(db=db, symbol=symbol)
+
+    # Get ohlcv
+    # ohlcv = get_ohlcv_with_symbol(db=db, symbol=symbol, limit=1, ascending=False)
+    ohlcv_df = get_ohlcv_with_symbol(db=db, as_df=True, ascending=True, symbol=symbol)
+    print(ohlcv_df)
+
+    if len(buy_board_items) > 0 and len(sell_board_items) > 0:
+        best_bid, best_ask = buy_board_items[-1], sell_board_items[0]
+        spread = best_ask.price - best_bid.price
+        return schemas.PreidictInfo(
+            buy=True,
+            sell=True,
+            buy_price=best_bid.price + spread * 0.1,
+            sell_price=best_ask.price - spread * 0.1,
+            buy_size=0.01,
+            sell_size=0.01,
+            buy_predict_value=1.0,
+            sell_predict_value=1.0,
+        )
+    else:
+        return schemas.PreidictInfo(
+            buy=False,
+            sell=False,
+            buy_price=0.0,
+            sell_price=0.0,
+            buy_size=0.0,
+            sell_size=0.0,
+            buy_predict_value=0.0,
+            sell_predict_value=0.0,
+        )

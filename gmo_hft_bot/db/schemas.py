@@ -69,12 +69,16 @@ class PREDICT(BaseModel):
     side: str
     price: float
     size: float
-    predict_valie: float
+    predict_value: float
     symbol: str
 
 
 class PreidictInfo(BaseModel):
     buy: bool
     sell: bool
+    buy_price: float
+    sell_price: float
+    buy_size: float
+    sell_size: float
     buy_predict_value: float
     sell_predict_value: float

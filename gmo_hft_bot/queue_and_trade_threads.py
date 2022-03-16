@@ -76,66 +76,46 @@ async def trade(symbol: str, trade_time_span: int, logger: logging.Logger, queue
     before_timestamp_per_span = None
     while True:
         try:
-            with SessionLocal() as db:
-                # Get Best bid & best ask
-                buy_board_items, sell_board_items = crud.get_current_board(db=db, symbol=symbol)
-
-                # Get ohlcv
-                ohlcv = crud.get_ohlcv_with_symbol(db=db, symbol=symbol, limit=1, ascending=False)
-
             current_timestamp_per_span = round(time.time()) // trade_time_span
-            if len(buy_board_items) > 0 and len(sell_board_items) > 0 and len(ohlcv) > 0:
-                if before_timestamp_per_span is not None and current_timestamp_per_span > before_timestamp_per_span:
-                    best_bid, best_ask = buy_board_items[-1], sell_board_items[0]
-                    current_ohlcv = ohlcv[0]
+            if before_timestamp_per_span is not None and current_timestamp_per_span > before_timestamp_per_span:
 
-                    predict_info = crud.get_prediction_info(symbol=symbol)
-                    if predict_info.buy is True:
-                        # Buy
-                        logger.debug("Buy order.")
-                        # Dummy order
-                        request_url, headers = queue_and_trade_manager.test_http_private_request_args()
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(request_url, headers=headers) as response:
-                                _ = await response.json()
+                with SessionLocal() as db:
+                    predict_info = crud.get_prediction_info(db=db, symbol=symbol)
 
-                        crud.insert_predict_items(
-                            db=db,
-                            insert_items=[
-                                {"side": "BUY", "size": 0.01, "price": best_bid.price, "predict_value": predict_info.buy_predict_value, "symbol": symbol}
-                            ],
-                        )
-                    else:
-                        crud.insert_predict_items(
-                            db=db, insert_items=[{"side": "BUY", "size": 0.0, "price": 0.0, "predict_value": predict_info.buy_predict_value, "symbol": symbol}]
-                        )
-                    if predict_info.sell is True:
-                        # Sell
-                        logger.debug("Sell order")
-                        # Dummy order
-                        request_url, headers = queue_and_trade_manager.test_http_private_request_args()
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(request_url, headers=headers) as response:
-                                _ = await response.json()
+                if predict_info.buy is True:
+                    # Buy
+                    logger.info("Buy order.")
+                    # Dummy order
+                    request_url, headers = queue_and_trade_manager.test_http_private_request_args()
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(request_url, headers=headers) as response:
+                            _ = await response.json()
 
-                        crud.insert_predict_items(
-                            db=db,
-                            insert_items=[
-                                {"side": "SELL", "size": 0.01, "price": best_ask.price, "predict_value": predict_info.sell_predict_value, "symbol": symbol}
-                            ],
-                        )
-                    else:
-                        crud.insert_predict_items(
-                            db=db,
-                            insert_items=[{"side": "SELL", "size": 0.0, "price": 0.0, "predict_value": predict_info.sell_predict_value, "symbol": symbol}],
-                        )
+                if predict_info.sell is True:
+                    # Sell
+                    logger.info("Sell order")
+                    # Dummy order
+                    request_url, headers = queue_and_trade_manager.test_http_private_request_args()
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(request_url, headers=headers) as response:
+                            _ = await response.json()
 
-                    logger.debug(f"Best Ask (price, size): ({best_ask.price}, {best_ask.size})")
-                    logger.debug(f"Best Bid (price, size): ({best_bid.price}, {best_bid.size})")
-                    logger.debug(
-                        f"Current OHLCV open: {current_ohlcv.open}, high: {current_ohlcv.high}, low: {current_ohlcv.low},"
-                        f" close: {current_ohlcv.close}, volume: {current_ohlcv.volume}."
-                    )
+                with SessionLocal() as db:
+                    buy_predict_item = {
+                        "side": "BUY",
+                        "size": predict_info.buy_size,
+                        "price": predict_info.buy_price,
+                        "predict_value": predict_info.buy_predict_value,
+                        "symbol": symbol,
+                    }
+                    sell_predict_item = {
+                        "side": "SELL",
+                        "size": predict_info.sell_size,
+                        "price": predict_info.sell_price,
+                        "predict_value": predict_info.sell_predict_value,
+                        "symbol": symbol,
+                    }
+                    crud.insert_predict_items(db=db, insert_items=[buy_predict_item, sell_predict_item])
 
             before_timestamp_per_span = current_timestamp_per_span
 
@@ -258,6 +238,5 @@ if __name__ == "__main__":
         max_tick_table_rows=max_tick_table_rows,
         max_ohlcv_table_rows=max_ohlcv_table_rows,
         queue_and_trade_manager=queue_and_trade_manager,
-        database_engine=database_engine,
-        SessionLocal=session_local,
+        database_uri="sqlite:///example.db",
     )
