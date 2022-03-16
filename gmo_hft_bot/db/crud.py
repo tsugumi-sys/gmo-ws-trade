@@ -364,7 +364,7 @@ def get_ohlcv_with_symbol(
                 return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp).all()
         else:
             if as_df is True:
-                stat = text("select * from ohlcv where ohlcv.symbol = :symbol limit :limit order by timestamp")
+                stat = text("select * from ohlcv where ohlcv.symbol = :symbol order by timestamp limit :limit")
                 return pd.read_sql(stat, db.bind, params={"symbol": symbol, "limit": limit})
             else:
                 return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp).limit(limit).all()
@@ -377,7 +377,7 @@ def get_ohlcv_with_symbol(
                 return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp.desc()).all()
         else:
             if as_df is True:
-                stat = text("select * from ohlcv where ohlcv.symbol = :symbol limit :limit order by timestamp desc")
+                stat = text("select * from ohlcv where ohlcv.symbol = :symbol order by timestamp desc limit :limit")
                 return pd.read_sql(stat, db.bind, params={"symbol": symbol, "limit": limit})
             else:
                 return db.query(models.OHLCV).filter(models.OHLCV.symbol == symbol).order_by(models.OHLCV.timestamp.desc()).limit(limit).all()
@@ -539,7 +539,7 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
 
     # Get ohlcv
     # ohlcv = get_ohlcv_with_symbol(db=db, symbol=symbol, limit=1, ascending=False)
-    ohlcv_df = get_ohlcv_with_symbol(db=db, as_df=True, ascending=True, symbol=symbol)
+    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=2, as_df=True, ascending=True, symbol=symbol)
     print(ohlcv_df)
 
     if len(buy_board_items) > 0 and len(sell_board_items) > 0:
