@@ -35,7 +35,8 @@ def richman_backtest(ohlcv_df: pd.DataFrame, buy_df: pd.DataFrame, sell_df: pd.D
             "sell_entry_price": sell_entry_prices,
             "buy_exit_price": buy_exit_prices,
             "sell_exit_price": sell_exit_prices,
-        }
+        },
+        index=ohlcv_df.index,
     )
 
 
