@@ -499,17 +499,29 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
         """
     )
     # [TODO]: filter ticks by timestamp
-    min_unix_timestamp = (round(time.time()) // time_span - 1) * time_span * 1000
+    min_unix_timestamp = (time.time() // time_span - 1) * time_span * 1000
 
     ohlcv_items = db.execute(stat, {"symbol": symbol, "time_span": time_span, "min_unix_timestamp": min_unix_timestamp}).all()
     ohlcv_insert_items = []
     ohlcv_update_items = []
+
+    test_items = []
     for item in ohlcv_items:
         ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[5] * time_span, symbol=symbol)
+        test_items.append(ohlcv_model)
         if _check_if_ohclv_stored(db, timestamp=ohlcv_model.timestamp) is True:
             ohlcv_update_items.append(ohlcv_model)
         else:
             ohlcv_insert_items.append(ohlcv_model)
+
+    # Check if no trade when before step.
+    check_timestamp = int(min_unix_timestamp // 1000)
+    if _check_if_ohclv_stored(db, timestamp=check_timestamp) is False and _check_if_ohclv_stored(db, timestamp=check_timestamp - 1) is True:
+        ohlcv_item = db.execute(text("select * from ohlcv where ohlcv.timestamp = :timestamp"), {"timestmap": check_timestamp - 1}).all()
+        print(ohlcv_item)
+        close = ohlcv_item[0].close
+        ohlcv_insert_items.append(schemas.OHLCVCreate(timestamp=check_timestamp, open=close, low=close, high=close, close=close, volume=0.0))
+
     insert_ohlcv_items(db=db, insert_items=ohlcv_insert_items, max_rows=max_rows)
     update_ohlcv_items(db=db, update_items=ohlcv_update_items)
 
@@ -538,9 +550,8 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
     buy_board_items, sell_board_items = get_current_board(db=db, symbol=symbol)
 
     # Get ohlcv
-    # ohlcv = get_ohlcv_with_symbol(db=db, symbol=symbol, limit=1, ascending=False)
-    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=2, as_df=True, ascending=True, symbol=symbol)
-    print(ohlcv_df)
+    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=2, as_df=True, ascending=False, symbol=symbol)
+    print(ohlcv_df.head())
 
     if len(buy_board_items) > 0 and len(sell_board_items) > 0:
         best_bid, best_ask = buy_board_items[-1], sell_board_items[0]

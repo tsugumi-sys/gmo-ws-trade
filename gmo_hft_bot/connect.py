@@ -84,7 +84,7 @@ def sub_processes(
 
 
 if __name__ == "__main__":
-    logging_level = logging.DEBUG
+    logging_level = logging.INFO
     logging_queue = multiprocessing.Queue(-1)
     logging.basicConfig(level=logging_level, format=LOGGER_FORMAT)
 
