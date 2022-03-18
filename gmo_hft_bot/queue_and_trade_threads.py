@@ -76,7 +76,7 @@ async def trade(symbol: str, trade_time_span: int, logger: logging.Logger, queue
     before_timestamp_per_span = None
     while True:
         try:
-            current_timestamp_per_span = round(time.time()) // trade_time_span
+            current_timestamp_per_span = time.time() // trade_time_span
             if before_timestamp_per_span is not None and current_timestamp_per_span > before_timestamp_per_span:
 
                 with SessionLocal() as db:
