@@ -81,6 +81,8 @@ async def trade(symbol: str, trade_time_span: int, logger: logging.Logger, queue
 
                 with SessionLocal() as db:
                     predict_info = crud.get_prediction_info(db=db, symbol=symbol)
+                    ohlcv_count = crud._count_ohlcv(db)
+                print(ohlcv_count)
 
                 if predict_info.buy is True:
                     # Buy

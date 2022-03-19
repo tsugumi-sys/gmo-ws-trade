@@ -28,7 +28,7 @@ def get_ohlcv_df(ohlcv_data: List[models.OHLCV], time_span: int) -> pd.DataFrame
         data["timestamp"].append(item.timestamp)
 
     df = pd.DataFrame(data)
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s", utc=True)
     df["timestamp"] += timedelta(hours=9)
     df = df.set_index("timestamp")
     df = df.sort_index()

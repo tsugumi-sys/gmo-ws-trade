@@ -12,8 +12,8 @@ LOGGER_FORMAT = "[%(asctime)s] [%(name)s] [%(levelname)s]: %(message)s (%(filena
 
 def listener_configurer():
     root = logging.getLogger()
-    # h = logging.handlers.RotatingFileHandler("./log/mptest.log", "a", 300, 10)
-    h = logging.StreamHandler()
+    h = logging.handlers.RotatingFileHandler("./log/subprocesses.log", "a")
+    # h = logging.StreamHandler()
     f = logging.Formatter(LOGGER_FORMAT)
     h.setFormatter(f)
     root.addHandler(h)

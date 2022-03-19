@@ -37,7 +37,7 @@ def main():
     timestamped_sell_df["price"] = ohlcv_df.loc[:, "close"] + pips
     result_local = richman_backtest(ohlcv_df, buy_df=timestamped_buy_df, sell_df=timestamped_sell_df)
 
-    _, ax = plt.subplots(4, 2, figsize=(20, 20))
+    _, ax = plt.subplots(4, 2, figsize=(16, 16))
     ax = ax.flatten()
     cum_return_plot(ax[0], result_online["cumulative_return"], "Online")
     cum_return_plot(ax[1], result_local["cumulative_return"], "Local")
@@ -46,6 +46,7 @@ def main():
     position_change_average_plot(ax[4], result_online["position"], "Online")
     position_change_average_plot(ax[5], result_local["position"], "Local")
     ohlcv_plot(ax[6], ohlcv_df)
+    plt.tight_layout()
     plt.show()
 
 

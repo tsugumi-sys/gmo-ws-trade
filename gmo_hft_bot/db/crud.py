@@ -505,10 +505,8 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
     ohlcv_insert_items = []
     ohlcv_update_items = []
 
-    test_items = []
     for item in ohlcv_items:
         ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[5] * time_span, symbol=symbol)
-        test_items.append(ohlcv_model)
         if _check_if_ohclv_stored(db, timestamp=ohlcv_model.timestamp) is True:
             ohlcv_update_items.append(ohlcv_model)
         else:
@@ -516,11 +514,10 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
 
     # Check if no trade when before step.
     check_timestamp = int(min_unix_timestamp // 1000)
-    if _check_if_ohclv_stored(db, timestamp=check_timestamp) is False and _check_if_ohclv_stored(db, timestamp=check_timestamp - 1) is True:
-        ohlcv_item = db.execute(text("select * from ohlcv where ohlcv.timestamp = :timestamp"), {"timestmap": check_timestamp - 1}).all()
-        print(ohlcv_item)
+    if _check_if_ohclv_stored(db, timestamp=check_timestamp) is False and _check_if_ohclv_stored(db, timestamp=check_timestamp - time_span) is True:
+        ohlcv_item = db.execute(text("select * from ohlcv where ohlcv.timestamp = :timestamp"), {"timestamp": check_timestamp - time_span}).all()
         close = ohlcv_item[0].close
-        ohlcv_insert_items.append(schemas.OHLCVCreate(timestamp=check_timestamp, open=close, low=close, high=close, close=close, volume=0.0))
+        ohlcv_insert_items.append(schemas.OHLCVCreate(timestamp=check_timestamp, open=close, low=close, high=close, close=close, volume=0.0, symbol=symbol))
 
     insert_ohlcv_items(db=db, insert_items=ohlcv_insert_items, max_rows=max_rows)
     update_ohlcv_items(db=db, update_items=ohlcv_update_items)
@@ -531,7 +528,7 @@ def insert_predict_items(db: Session, insert_items: List[Dict]):
     predict_items = []
     for item in insert_items:
         item["id"] = uuid.uuid4().hex
-        item["timestamp"] = round(time.time())
+        item["timestamp"] = round(time.time() * 1000)
         predict_items.append(models.PREDICT(**item))
 
     db.add_all(predict_items)
@@ -550,21 +547,25 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
     buy_board_items, sell_board_items = get_current_board(db=db, symbol=symbol)
 
     # Get ohlcv
-    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=2, as_df=True, ascending=False, symbol=symbol)
-    print(ohlcv_df.head())
+    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=1, as_df=True, ascending=False, symbol=symbol)
+    ohlcv_df = ohlcv_df.sort_values("timestamp")
+    print(ohlcv_df)
 
-    if len(buy_board_items) > 0 and len(sell_board_items) > 0:
+    prediction = get_prediction(ohlcv_df)
+    print(prediction)
+
+    if len(buy_board_items) > 0 and len(sell_board_items) > 0 and prediction is not None:
         best_bid, best_ask = buy_board_items[-1], sell_board_items[0]
-        spread = best_ask.price - best_bid.price
+        # spread = best_ask.price - best_bid.price
         return schemas.PreidictInfo(
-            buy=True,
-            sell=True,
-            buy_price=best_bid.price + spread * 0.1,
-            sell_price=best_ask.price - spread * 0.1,
+            buy=prediction["buy"],
+            sell=prediction["sell"],
+            buy_price=best_bid.price + 1,
+            sell_price=best_ask.price - 1,
             buy_size=0.01,
             sell_size=0.01,
-            buy_predict_value=1.0,
-            sell_predict_value=1.0,
+            buy_predict_value=prediction["buy_predict_value"],
+            sell_predict_value=prediction["sell_predict_value"],
         )
     else:
         return schemas.PreidictInfo(
@@ -577,3 +578,23 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
             buy_predict_value=0.0,
             sell_predict_value=0.0,
         )
+
+
+# Ryotaro trade
+def get_prediction(ohlcv_df: pd.DataFrame) -> Optional[Dict]:
+    # ===================
+    #  Price Transform Functions
+    # ===================
+    if len(ohlcv_df) > 0:
+        # 予測値の計算
+        open, high, low, close = ohlcv_df["open"].iloc[-1], ohlcv_df["high"].iloc[-1], ohlcv_df["low"].iloc[-1], ohlcv_df["close"].iloc[-1]
+        predict_value = close / ((open + high + low + close) / 4)
+
+        buy_threshhold = 1
+        if predict_value != 1.0:
+            buy = predict_value > buy_threshhold
+            return {"buy": buy, "sell": not buy, "buy_predict_value": predict_value, "sell_predict_value": predict_value}
+        else:
+            return {"buy": False, "sell": False, "buy_predict_value": predict_value, "sell_predict_value": predict_value}
+    else:
+        return None

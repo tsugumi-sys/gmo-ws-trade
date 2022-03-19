@@ -31,10 +31,10 @@ async def orderbook_ws(ws_url: str, symbol: str, logger: logging.Logger, queue_a
                         raise ValueError(f"Invalid request parameter sybol={symbol}")
                     else:
                         ws.logger.error(f"Error response: {res}")
-                        continue
                 else:
                     queue_and_trade_manager.add_orderbook_queue(res)
-                    await asyncio.sleep(0.0)
+
+                await asyncio.sleep(0.0)
             except websockets.exceptions.ConnectionClosed:
                 ws.logger.error("Public websocket connection has been closed.")
                 await asyncio.sleep(0.0)
@@ -73,6 +73,7 @@ async def tick_ws(ws_url: str, symbol: str, logger: logging.Logger, queue_and_tr
                         continue
                 else:
                     queue_and_trade_manager.add_ticks_queue(res)
+
                 await asyncio.sleep(0.0)
             except websockets.exceptions.ConnectionClosed:
                 ws.logger.error("Public websocket connection has been closed.")
@@ -110,6 +111,7 @@ def main(
     """
     if logging_queue is None:
         logger = logging.getLogger("WebsocketThredsLogger")
+        logging.getLogger().addHandler(logging.FileHandler("./log/main_process.log", "a"))
 
         if logging_level is not None:
             logger.setLevel(logging_level)
