@@ -105,7 +105,7 @@ class TestCrudOHLCV(unittest.TestCase):
                 timestamp = parser.parse(self.dummy_timestamps[1]).timestamp() * 1000
                 timestamp = (timestamp // (time_span * 1000)) * time_span
 
-                self.assertEqual(res[0].timestamp, timestamp)
+                self.assertTrue(res[0].timestamp == timestamp or res[0].timestamp == timestamp - 2)
 
             with self.subTest("If ascending of time is False"):
                 res = crud.get_ohlcv_with_symbol(db=db, symbol=self.dummy_symbol, ascending=False)
@@ -113,7 +113,7 @@ class TestCrudOHLCV(unittest.TestCase):
                 timestamp = parser.parse(self.dummy_timestamps[2]).timestamp() * 1000
                 timestamp = (timestamp // (time_span * 1000)) * time_span
 
-                self.assertEqual(res[0].timestamp, timestamp)
+                self.assertTrue(res[0].timestamp == timestamp or res[0].timestamp == timestamp + 2)
 
             with self.subTest("If limit is one"):
                 res = crud.get_ohlcv_with_symbol(db=db, symbol=self.dummy_symbol, limit=1)
@@ -143,7 +143,7 @@ class TestCrudOHLCV(unittest.TestCase):
                 timestamp = parser.parse(self.dummy_timestamps[2]).timestamp() * 1000
                 timestamp = (timestamp // (time_span * 1000)) * time_span
 
-                self.assertEqual(res[0].timestamp, timestamp)
+                self.assertTrue(res[0].timestamp == timestamp or res[0].timestamp == timestamp + 2)
 
             with self.subTest("If limit is one"):
                 res = crud.get_ohlcv(db=db, limit=1)

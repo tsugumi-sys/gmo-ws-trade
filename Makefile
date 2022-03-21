@@ -4,11 +4,11 @@ run:
 
 .PHONY run_websockets:
 run_websockets:
-	poetry run python ./gmo_hft_bot/websocket_threads.py
+	poetry run python ./gmo_hft_bot/threads/websocket_threads.py
 
 .PHONY run_trade:
 run_trade:
-	poetry run python ./gmo_hft_bot/queue_and_trade_threads.py
+	poetry run python ./gmo_hft_bot/threads/queue_and_trade_threads.py
 
 .PHONY test:
 test:

@@ -6,8 +6,8 @@ import sys
 from dotenv import load_dotenv
 
 sys.path.append(".")
-from gmo_hft_bot.queue_and_trade_manager import QueueAndTradeManager
-from gmo_hft_bot import websocket_threads, queue_and_trade_threads
+from gmo_hft_bot.utils.queue_and_trade_manager import QueueAndTradeManager
+from gmo_hft_bot.threads import websocket_threads, queue_and_trade_threads
 from gmo_hft_bot.utils.logger_utils import LOGGER_FORMAT, listener_configurer, listener_process
 
 # Load .env file

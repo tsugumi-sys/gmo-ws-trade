@@ -3,8 +3,9 @@ import time
 from datetime import datetime
 import hmac
 import hashlib
+import multiprocessing as mp
 
-from gmo_hft_bot.utils.custom_queue import CustomQueue
+# from gmo_hft_bot.utils.custom_queue import CustomQueue
 
 
 class QueueAndTradeManager:
@@ -16,8 +17,10 @@ class QueueAndTradeManager:
         self.api_key = api_key
         self.api_secret = api_secret
         self.http_request_private_baseurl = "https://api.coin.z.com/private"
-        self.orderbook_queue = CustomQueue()
-        self.ticks_queue = CustomQueue()
+        # self.orderbook_queue = CustomQueue()
+        self.orderbook_queue = mp.Manager().Queue()
+        # self.ticks_queue = CustomQueue()
+        self.ticks_queue = mp.Manager().Queue()
 
     def __del__(self):
         import time
@@ -74,19 +77,23 @@ class QueueAndTradeManager:
         self.enable_trade = False
 
     def add_orderbook_queue(self, item: Dict):
-        self.orderbook_queue.put_nowait(item)
+        # self.orderbook_queue.put_nowait(item)
+        self.orderbook_queue.put(item)
 
     def get_orderbook_queue_size(self):
         return self.orderbook_queue.qsize()
 
     def get_orderbook_queue_item(self):
-        return self.orderbook_queue.get_nowait()
+        # return self.orderbook_queue.get_nowait()
+        return self.orderbook_queue.get()
 
     def add_ticks_queue(self, item: Dict):
-        self.ticks_queue.put_nowait(item)
+        # self.ticks_queue.put_nowait(item)
+        self.ticks_queue.put(item)
 
     def get_ticks_queue_item(self):
-        return self.ticks_queue.get_nowait()
+        # return self.ticks_queue.get_nowait()
+        return self.ticks_queue.get()
 
     def get_ticks_queue_size(self):
         return self.ticks_queue.qsize()

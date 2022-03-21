@@ -8,7 +8,7 @@ class SubscribeManager:
     def __init__(self) -> None:
         self.is_subscribe_orderbook = False
         self.is_subscribe_tick = False
-        pass
+        self.is_subscribe_error_too_many_request = False
 
     def subscribe_orderbook(self):
         self.is_subscribe_orderbook = True
@@ -23,13 +23,19 @@ class SubscribeManager:
         self.is_subscribe_tick = False
 
     def is_subscribed(self) -> bool:
-        return self.is_subscribe_orderbook or self.is_subscribe_tick
+        return self.is_subscribe_orderbook or self.is_subscribe_tick or self.is_subscribe_error_too_many_request
 
     def is_subscribed_orderbook(self) -> bool:
         return self.is_subscribe_orderbook
 
     def is_subscribed_tick(self) -> bool:
         return self.is_subscribe_tick
+
+    def subscribe_error_too_many_request(self):
+        self.is_subscribe_error_too_many_request = True
+
+    def is_subscribed_error_too_many_request(self) -> bool:
+        return self.is_subscribe_error_too_many_request
 
 
 async def handler(websocket):
@@ -38,14 +44,25 @@ async def handler(websocket):
 
         if not subscribe_manager.is_subscribed():
             message = await websocket.recv()
-            print(message)
             message = json.loads(message)
 
-            if message["subscribe"] == "orderbook":
+            if message["channel"] == "orderbooks":
                 subscribe_manager.subscribe_orderbook()
 
-            elif message["subscribe"] == "tick":
+            elif message["channel"] == "trades":
                 subscribe_manager.subscribe_tick()
+
+            elif message["channel"] == "errorTooManyRequest":
+                subscribe_manager.subscribe_error_too_many_request()
+
+            elif message["channel"] == "stopWebsocketServer":
+                asyncio.get_event_loop().stop()
+
+            elif message["channel"] == "asyncioTimeout":
+                raise asyncio.TimeoutError
+
+            else:
+                await websocket.send(json.dumps({"invalid_subscribe_msg": message}))
 
         elif subscribe_manager.is_subscribed_orderbook():
             await websocket.send(
@@ -59,7 +76,7 @@ async def handler(websocket):
                     }
                 )
             )
-            await asyncio.sleep(3.0)
+            await asyncio.sleep(1.0)
 
         elif subscribe_manager.is_subscribed_tick():
             await websocket.send(
@@ -74,7 +91,14 @@ async def handler(websocket):
                     }
                 )
             )
-            await asyncio.sleep(3.0)
+            await asyncio.sleep(1.0)
+
+        elif subscribe_manager.is_subscribed_error_too_many_request():
+            await websocket.send(json.dumps({"error": "Request too many"}))
+            await asyncio.sleep(1.0)
+
+        else:
+            raise ValueError("subscribe failed. check your subscribe message.")
 
 
 async def main():
@@ -82,12 +106,12 @@ async def main():
         await asyncio.Future()
 
 
-def multiprocess_main():
+def dummy_gmo_websockt_server():
     asyncio.run(main())
 
 
 if __name__ == "__main__":
-    p = multiprocessing.Process(target=multiprocess_main)
+    p = multiprocessing.Process(target=dummy_gmo_websockt_server)
     p.start()
 
     import time

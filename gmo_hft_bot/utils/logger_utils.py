@@ -12,11 +12,13 @@ LOGGER_FORMAT = "[%(asctime)s] [%(name)s] [%(levelname)s]: %(message)s (%(filena
 
 def listener_configurer():
     root = logging.getLogger()
-    h = logging.handlers.RotatingFileHandler("./log/subprocesses.log", "a")
-    # h = logging.StreamHandler()
+    file_handler = logging.handlers.RotatingFileHandler("./log/subprocesses.log", "a")
+    stream_handler = logging.StreamHandler()
     f = logging.Formatter(LOGGER_FORMAT)
-    h.setFormatter(f)
-    root.addHandler(h)
+    file_handler.setFormatter(f)
+    stream_handler.setFormatter(f)
+    root.addHandler(file_handler)
+    root.addHandler(stream_handler)
 
 
 def listener_process(queue: multiprocessing.Queue, configurer: Callable):
