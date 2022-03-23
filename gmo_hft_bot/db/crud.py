@@ -518,7 +518,7 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
     # Check if no trade when before step.
     check_timestamp = int(min_unix_timestamp // 1000)
     if (
-        check_timestamp in timestamps
+        check_timestamp not in timestamps
         and _check_if_ohclv_stored(db, timestamp=check_timestamp) is False
         and _check_if_ohclv_stored(db, timestamp=check_timestamp - time_span) is True
     ):
