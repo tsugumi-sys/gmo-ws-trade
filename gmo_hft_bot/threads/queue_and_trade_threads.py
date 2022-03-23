@@ -4,6 +4,7 @@ import asyncio
 import logging
 import multiprocessing
 from typing import Optional, Tuple
+import traceback
 
 from dotenv import load_dotenv
 import sqlalchemy
@@ -27,36 +28,81 @@ async def run_manage_queue_and_trading(
     max_ohlcv_table_rows: int,
     logger: logging.Logger,
     queue_and_trade_manager: QueueAndTradeManager,
-    SessionLocal: sqlalchemy.orm.Session,
+    SessionLocal: Optional[sqlalchemy.orm.Session] = None,
+    database_uri: Optional[str] = None,
 ):
+    if SessionLocal is None and database_uri is None:
+        logger.error("database_uri is needed if SessionLocal is None.")
+
     orderbook_queue_manager = OrderbookQueueManager()
     tick_queue_manager = TickQueueManager()
     trader = Trader()
 
-    await asyncio.gather(
-        tick_queue_manager.run(
-            symbol=symbol,
-            time_span=time_span,
-            max_tick_table_rows=max_tick_table_rows,
-            max_ohlcv_table_rows=max_ohlcv_table_rows,
-            logger=logger,
-            queue_and_trade_manager=queue_and_trade_manager,
-            SessionLocal=SessionLocal,
-        ),
-        orderbook_queue_manager.run(
-            max_orderbook_table_rows=max_orderbook_table_rows,
-            logger=logger,
-            queue_and_trade_manager=queue_and_trade_manager,
-            SessionLocal=SessionLocal,
-        ),
-        trader.run(
-            symbol=symbol,
-            trade_time_span=time_span,
-            logger=logger,
-            queue_and_trade_manager=queue_and_trade_manager,
-            SessionLocal=SessionLocal,
-        ),
-    )
+    if SessionLocal is None:
+        # Run in multiprocessing.Process
+
+        # Avoid AttributeError: Can't pickle local object 'create_engine.<locals>.connect'
+        database_engine, SessionLocal = initialize_database(uri=database_uri)
+        try:
+            # Initialize sqlite3 in-memory database
+            models.Base.metadata.create_all(database_engine)
+            # raise ConnectionFailedError
+            await asyncio.gather(
+                tick_queue_manager.run(
+                    symbol=symbol,
+                    time_span=time_span,
+                    max_tick_table_rows=max_tick_table_rows,
+                    max_ohlcv_table_rows=max_ohlcv_table_rows,
+                    logger=logger,
+                    queue_and_trade_manager=queue_and_trade_manager,
+                    SessionLocal=SessionLocal,
+                ),
+                orderbook_queue_manager.run(
+                    max_orderbook_table_rows=max_orderbook_table_rows,
+                    logger=logger,
+                    queue_and_trade_manager=queue_and_trade_manager,
+                    SessionLocal=SessionLocal,
+                ),
+                trader.run(
+                    symbol=symbol,
+                    trade_time_span=time_span,
+                    logger=logger,
+                    queue_and_trade_manager=queue_and_trade_manager,
+                    SessionLocal=SessionLocal,
+                ),
+            )
+        except ConnectionFailedError:
+            # Clear in-memory DB
+            models.Base.metadata.drop_all(database_engine)
+
+            # Raise ConnectionFailedError again so that restart from main process.
+            logger.error(traceback.format_exc())
+            raise ConnectionFailedError
+    else:
+        await asyncio.gather(
+            tick_queue_manager.run(
+                symbol=symbol,
+                time_span=time_span,
+                max_tick_table_rows=max_tick_table_rows,
+                max_ohlcv_table_rows=max_ohlcv_table_rows,
+                logger=logger,
+                queue_and_trade_manager=queue_and_trade_manager,
+                SessionLocal=SessionLocal,
+            ),
+            orderbook_queue_manager.run(
+                max_orderbook_table_rows=max_orderbook_table_rows,
+                logger=logger,
+                queue_and_trade_manager=queue_and_trade_manager,
+                SessionLocal=SessionLocal,
+            ),
+            trader.run(
+                symbol=symbol,
+                trade_time_span=time_span,
+                logger=logger,
+                queue_and_trade_manager=queue_and_trade_manager,
+                SessionLocal=SessionLocal,
+            ),
+        )
 
 
 def main(
@@ -102,7 +148,6 @@ def main(
             )
         )
     except ConnectionFailedError:
-        # bybit_ws.is_db_refreshed = False
         # Clear in-memory DB
         models.Base.metadata.drop_all(database_engine)
 
@@ -110,17 +155,16 @@ def main(
         models.Base.metadata.create_all(database_engine)
 
         logger.debug("Rerun queue_and_trade_threads")
-        asyncio.run(
-            main(
-                symbol=symbol,
-                time_span=time_span,
-                max_orderbook_table_rows=max_orderbook_table_rows,
-                max_tick_table_rows=max_tick_table_rows,
-                max_ohlcv_table_rows=max_ohlcv_table_rows,
-                logger=logger,
-                queue_and_trade_manager=queue_and_trade_manager,
-                SessionLocal=SessionLocal,
-            )
+        main(
+            symbol=symbol,
+            time_span=time_span,
+            max_orderbook_table_rows=max_orderbook_table_rows,
+            max_tick_table_rows=max_tick_table_rows,
+            max_ohlcv_table_rows=max_ohlcv_table_rows,
+            queue_and_trade_manager=queue_and_trade_manager,
+            database_uri=database_uri,
+            logging_level=logging_level,
+            logging_queue=logging_queue,
         )
 
     # Clear in-memory DB again for next try

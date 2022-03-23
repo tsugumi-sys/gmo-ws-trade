@@ -60,7 +60,7 @@ def main(
         asyncio.run(run_multiple_websockets(symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager))
     except ConnectionFailedError:
         logger.debug("Reconnect websockets")
-        asyncio.run(main(symbol=symbol, logger=logger, queue_and_trade_manager=queue_and_trade_manager))
+        main(symbol=symbol, queue_and_trade_manager=queue_and_trade_manager, logging_level=logging_level, logging_queue=logging_queue)
 
 
 if __name__ == "__main__":

@@ -504,17 +504,24 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
     ohlcv_items = db.execute(stat, {"symbol": symbol, "time_span": time_span, "min_unix_timestamp": min_unix_timestamp}).all()
     ohlcv_insert_items = []
     ohlcv_update_items = []
+    timestamps = []
 
     for item in ohlcv_items:
         ohlcv_model = schemas.OHLCVCreate(open=item[0], high=item[1], low=item[2], close=item[3], volume=item[4], timestamp=item[5] * time_span, symbol=symbol)
         if _check_if_ohclv_stored(db, timestamp=ohlcv_model.timestamp) is True:
             ohlcv_update_items.append(ohlcv_model)
+            timestamps.append(ohlcv_model.timestamp)
         else:
             ohlcv_insert_items.append(ohlcv_model)
+            timestamps.append(ohlcv_model.timestamp)
 
     # Check if no trade when before step.
     check_timestamp = int(min_unix_timestamp // 1000)
-    if _check_if_ohclv_stored(db, timestamp=check_timestamp) is False and _check_if_ohclv_stored(db, timestamp=check_timestamp - time_span) is True:
+    if (
+        check_timestamp in timestamps
+        and _check_if_ohclv_stored(db, timestamp=check_timestamp) is False
+        and _check_if_ohclv_stored(db, timestamp=check_timestamp - time_span) is True
+    ):
         ohlcv_item = db.execute(text("select * from ohlcv where ohlcv.timestamp = :timestamp"), {"timestamp": check_timestamp - time_span}).all()
         close = ohlcv_item[0].close
         ohlcv_insert_items.append(schemas.OHLCVCreate(timestamp=check_timestamp, open=close, low=close, high=close, close=close, volume=0.0, symbol=symbol))

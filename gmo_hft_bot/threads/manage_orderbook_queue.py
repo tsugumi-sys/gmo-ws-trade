@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import logging
+import traceback
 
 import sqlalchemy
 
@@ -36,4 +37,9 @@ class OrderbookQueueManager:
                 await asyncio.sleep(0.0)
             except asyncio.TimeoutError:
                 logger.debug("Trade thread has ended with asyncio.TimeoutError")
+                raise ConnectionFailedError
+
+            except Exception as e:
+                logger.error(traceback.format_exc())
+                logger.error(e)
                 raise ConnectionFailedError

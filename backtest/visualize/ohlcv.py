@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import sys
 
 sys.path.append(".")
@@ -13,12 +14,13 @@ def volume_plot(ax, ohlcv_data):
     ax.plot([i for i in range(len(volumes))], volumes)
 
 
-def ohlcv_plot(ax, df):
+def ohlcv_plot(ax, df: pd.DataFrame):
     """
     matplotlibのAxesオブジェクトにローソク足を描画する.
     :param ax:ローソク足を描画するAxesオブジェクト.
     :param df:DataFrameオブジェクト. 必要なカラムはtimestamp,open,high,low,close,volume.
     """
+    df = df.copy()
     # timestampからdatetimeを作りindexにする。datetimeは日本時間を指定。
     # df["datetime"]=pd.to_datetime(df["timestamp"], unit='s')
     # df=df.set_index("datetime")

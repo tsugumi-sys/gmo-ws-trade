@@ -3,6 +3,7 @@ import asyncio
 import logging
 import time
 import aiohttp
+import traceback
 
 import sqlalchemy
 
@@ -84,4 +85,9 @@ class Trader:
                 await asyncio.sleep(0.0)
             except asyncio.TimeoutError:
                 logger.debug("Trade thread has ended with asyncio.TimeoutError")
+                raise ConnectionFailedError
+
+            except Exception as e:
+                logger.error(traceback.format_exc())
+                logger.error(e)
                 raise ConnectionFailedError

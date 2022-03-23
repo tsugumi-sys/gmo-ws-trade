@@ -5,8 +5,6 @@ import hmac
 import hashlib
 import multiprocessing as mp
 
-# from gmo_hft_bot.utils.custom_queue import CustomQueue
-
 
 class QueueAndTradeManager:
     def __init__(self, api_key: str, api_secret: str) -> None:
@@ -17,16 +15,22 @@ class QueueAndTradeManager:
         self.api_key = api_key
         self.api_secret = api_secret
         self.http_request_private_baseurl = "https://api.coin.z.com/private"
-        # self.orderbook_queue = CustomQueue()
         self.orderbook_queue = mp.Manager().Queue()
-        # self.ticks_queue = CustomQueue()
         self.ticks_queue = mp.Manager().Queue()
+
+        self.subprocesses_info = mp.Manager().dict({"is_subprocesses_alive": True})
 
     def __del__(self):
         import time
 
         # Sometime, Broken pipe error raises becase main process finishes faster than Queue.close().
         time.sleep(0.01)
+
+    def is_subprocesses_alive(self):
+        return self.subprocesses_info["is_subprocesses_alive"]
+
+    def update_subprocesses_alive_status(self, status: bool) -> None:
+        self.subprocesses_info["is_subprocesses_alive"] = status
 
     def http_headers(self, method: str, endpint: str):
         timestamp = "{0}000".format(int(time.mktime(datetime.now().timetuple())))
@@ -85,7 +89,7 @@ class QueueAndTradeManager:
 
     def get_orderbook_queue_item(self):
         # return self.orderbook_queue.get_nowait()
-        return self.orderbook_queue.get()
+        return self.orderbook_queue.get(block=True, timeout=0.05)
 
     def add_ticks_queue(self, item: Dict):
         # self.ticks_queue.put_nowait(item)
@@ -93,7 +97,7 @@ class QueueAndTradeManager:
 
     def get_ticks_queue_item(self):
         # return self.ticks_queue.get_nowait()
-        return self.ticks_queue.get()
+        return self.ticks_queue.get(block=True, timeout=0.05)
 
     def get_ticks_queue_size(self):
         return self.ticks_queue.qsize()

@@ -18,6 +18,16 @@ test:
 run_backtest:
 	poetry run python ./backtest/main.py
 
+
+# DEBUG
+.PHONY run_with_mprof:
+run_with_mprof:
+	poetry run mprof run ./gmo_hft_bot/connect.py
+
+.PHONY mprof_plot:
+mprof_plot:
+	poetry run mprof plot
+
 .PHONY delete_pycache:
 delete_pycache:
 	find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
