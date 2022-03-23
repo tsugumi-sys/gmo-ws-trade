@@ -1,6 +1,6 @@
 .PHONY run:
 run:
-	poetry run python ./gmo_hft_bot/connect.py
+	poetry run python ./gmo_hft_bot/main.py
 
 .PHONY run_websockets:
 run_websockets:
@@ -22,7 +22,7 @@ run_backtest:
 # DEBUG
 .PHONY run_with_mprof:
 run_with_mprof:
-	poetry run mprof run ./gmo_hft_bot/connect.py
+	poetry run mprof run ./gmo_hft_bot/main.py
 
 .PHONY mprof_plot:
 mprof_plot:

@@ -46,7 +46,7 @@ async def run_manage_queue_and_trading(
         try:
             # Initialize sqlite3 in-memory database
             models.Base.metadata.create_all(database_engine)
-            # raise ConnectionFailedError
+
             await asyncio.gather(
                 tick_queue_manager.run(
                     symbol=symbol,
