@@ -80,7 +80,7 @@ def match_timestamp_for_ohlcv(ohlcv_df: pd.DataFrame, target_df: pd.DataFrame, t
     column_names = target_df.columns.values.tolist()
     matched_timestamp_df = pd.DataFrame({"timestamp": ohlcv_df.index})
     for idx, timestamp in enumerate(ohlcv_df.index):
-        target_row = target_df.loc[(target_df.index <= timestamp) & (target_df.index.shift(freq="s", periods=time_span) > timestamp)]
+        target_row = target_df.loc[(target_df.index >= timestamp) & (target_df.index < pd.Timedelta(time_span, unit="s") + timestamp)]
         if len(target_row) > 0:
             target_row = target_row.iloc[0, :]
             matched_timestamp_df.loc[idx, column_names] = target_row
