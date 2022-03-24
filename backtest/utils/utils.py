@@ -44,7 +44,7 @@ def get_predict_df(predict_data: List[models.PREDICT]) -> Tuple[pd.DataFrame, pd
     Returns:
         Tuple[pd.DataFrame, pd.DataFrame]: buy_df, sell_df with columns timestamp, side, price, size, predict_value, symbol
     """
-    data = {"timestamp": [], "side": [], "price": [], "size": [], "predict_value": [], "symbol": []}
+    data = {"timestamp": [], "side": [], "price": [], "size": [], "predict_value": [], "symbol": [], "is_entry": []}
     for item in predict_data:
         data["timestamp"].append(item.timestamp)
         data["side"].append(item.side)
@@ -52,14 +52,15 @@ def get_predict_df(predict_data: List[models.PREDICT]) -> Tuple[pd.DataFrame, pd
         data["size"].append(item.size)
         data["predict_value"].append(item.predict_value)
         data["symbol"].append(item.symbol)
+        data["is_entry"].append(item.is_entry)
 
     df = pd.DataFrame(data)
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
     df["timestamp"] += timedelta(hours=9)
     df = df.sort_index()
 
-    buy_df = pd.merge(df, df.loc[df["side"] == "BUY"])
-    sell_df = pd.merge(df, df.loc[df["side"] == "SELL"])
+    buy_df = df.loc[df["side"] == "BUY"]
+    sell_df = df.loc[df["side"] == "SELL"]
     buy_df = buy_df.set_index("timestamp")
     sell_df = sell_df.set_index("timestamp")
     return buy_df, sell_df

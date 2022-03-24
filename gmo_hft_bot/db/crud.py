@@ -556,17 +556,15 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
     # Get ohlcv
     ohlcv_df = get_ohlcv_with_symbol(db=db, limit=1, as_df=True, ascending=False, symbol=symbol)
     ohlcv_df = ohlcv_df.sort_values("timestamp")
-    print(ohlcv_df)
 
     prediction = get_prediction(ohlcv_df)
-    print(prediction)
 
     if len(buy_board_items) > 0 and len(sell_board_items) > 0 and prediction is not None:
         best_bid, best_ask = buy_board_items[-1], sell_board_items[0]
         # spread = best_ask.price - best_bid.price
         return schemas.PreidictInfo(
-            buy=prediction["buy"],
-            sell=prediction["sell"],
+            is_buy_entry=prediction["is_buy_entry"],
+            is_sell_entry=prediction["is_sell_entry"],
             buy_price=best_bid.price + 1,
             sell_price=best_ask.price - 1,
             buy_size=0.01,
@@ -576,8 +574,8 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
         )
     else:
         return schemas.PreidictInfo(
-            buy=False,
-            sell=False,
+            is_buy_entry=False,
+            is_sell_entry=False,
             buy_price=0.0,
             sell_price=0.0,
             buy_size=0.0,
@@ -599,9 +597,9 @@ def get_prediction(ohlcv_df: pd.DataFrame) -> Optional[Dict]:
 
         buy_threshhold = 1
         if predict_value != 1.0:
-            buy = predict_value > buy_threshhold
-            return {"buy": buy, "sell": not buy, "buy_predict_value": predict_value, "sell_predict_value": predict_value}
+            is_buy_entry = predict_value > buy_threshhold
+            return {"is_buy_entry": is_buy_entry, "is_sell_entry": not is_buy_entry, "buy_predict_value": predict_value, "sell_predict_value": predict_value}
         else:
-            return {"buy": False, "sell": False, "buy_predict_value": predict_value, "sell_predict_value": predict_value}
+            return {"is_buy_entry": False, "is_sell_entry": False, "buy_predict_value": predict_value, "sell_predict_value": predict_value}
     else:
         return None

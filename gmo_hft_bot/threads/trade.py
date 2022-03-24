@@ -45,7 +45,7 @@ class Trader:
                     with SessionLocal() as db:
                         predict_info = crud.get_prediction_info(db=db, symbol=symbol)
 
-                    if predict_info.buy is True:
+                    if predict_info.is_buy_entry is True:
                         # Buy
                         logger.info("Buy order.")
                         # Dummy order
@@ -54,7 +54,7 @@ class Trader:
                             async with session.get(request_url, headers=headers) as response:
                                 _ = await response.json()
 
-                    if predict_info.sell is True:
+                    if predict_info.is_sell_entry is True:
                         # Sell
                         logger.info("Sell order")
                         # Dummy order
@@ -70,6 +70,7 @@ class Trader:
                             "price": predict_info.buy_price,
                             "predict_value": predict_info.buy_predict_value,
                             "symbol": symbol,
+                            "is_entry": predict_info.is_buy_entry,
                         }
                         sell_predict_item = {
                             "side": "SELL",
@@ -77,6 +78,7 @@ class Trader:
                             "price": predict_info.sell_price,
                             "predict_value": predict_info.sell_predict_value,
                             "symbol": symbol,
+                            "is_entry": predict_info.is_sell_entry,
                         }
                         crud.insert_predict_items(db=db, insert_items=[buy_predict_item, sell_predict_item])
 

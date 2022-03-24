@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String
+from sqlalchemy import Column, Integer, Float, String, Boolean
 
 from gmo_hft_bot.db.database import Base
 
@@ -54,3 +54,4 @@ class PREDICT(Base):
     size = Column(Float)
     predict_value = Column(Float)
     symbol = Column(String(10), index=True)
+    is_entry = Column(Boolean)

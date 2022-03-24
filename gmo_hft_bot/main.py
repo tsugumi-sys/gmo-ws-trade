@@ -2,7 +2,6 @@ import logging
 import multiprocessing
 import os
 import sys
-import gc
 
 from dotenv import load_dotenv
 
@@ -62,8 +61,6 @@ def main():
 
         logger.warning("Rerun bot")
 
-        del logging_process, queue_and_trade_process
-        gc.collect()
         main()
 
 

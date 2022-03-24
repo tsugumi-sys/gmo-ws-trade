@@ -11,8 +11,8 @@ from backtest.backtest_trade.backtest import backtest
 def richman_backtest(ohlcv_df: pd.DataFrame, buy_df: pd.DataFrame, sell_df: pd.DataFrame) -> pd.DataFrame:
     buy_executed, buy_price = trade_executed(ohlcv_df, buy_df, side="buy")
     sell_executed, sell_price = trade_executed(ohlcv_df, sell_df, side="sell")
-    predict_buy_entry = entry_by_prediction(ohlcv_df, target_df=buy_df)
-    predict_sell_entry = entry_by_prediction(ohlcv_df, target_df=sell_df)
+    predict_buy_entry = (buy_df["is_entry"] == True).to_numpy()  # noqa: E712
+    predict_sell_entry = (sell_df["is_entry"] == True).to_numpy()  # noqa: E712
     # If you use two different model for buy and sell, you have to custom priority_buy_entry.
     # Else, priority_buy_entry is the same as buy_executed.
     prioty_buy_entry = buy_executed
