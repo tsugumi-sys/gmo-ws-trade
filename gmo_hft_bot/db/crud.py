@@ -480,20 +480,27 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
         max_rows (int): Number of max rows of ohlcv table. Default is 100.
     """
     stat = text(
-        """select
-                first_value(price) over (
-                    order by timestamp
-                ) as open,
-                max(price) as high,
-                min(price) as low,
-                first_value(price) over (
-                    order by timestamp desc
-                ) as close,
-                sum(size) as volume,
-                cast(timestamp/(1000*:time_span) as int) as open_time,
-                min(timestamp)
-        from tick
-        where tick.symbol= :symbol and tick.timestamp > :min_unix_timestamp
+        """
+        select
+        open,
+        max(price) as high,
+        min(price) as low,
+        close,
+        sum(size) as volume,
+        open_time
+        from (
+            select
+            first_value(price) over (partition by open_time order by timestamp) as open,
+            first_value(price) over (partition by open_time order by timestamp desc) as close,
+            *
+            from (
+                select
+                *,
+                cast(timestamp/(1000*:time_span) as int) as open_time
+                from tick
+                where tick.symbol= :symbol and tick.timestamp > :min_unix_timestamp
+            )
+        )
         group by open_time
         order by open_time desc
         """
