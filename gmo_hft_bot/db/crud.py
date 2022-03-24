@@ -482,21 +482,21 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
     stat = text(
         """
         select
-        open,
-        max(price) as high,
-        min(price) as low,
-        close,
-        sum(size) as volume,
-        open_time
+            open,
+            max(price) as high,
+            min(price) as low,
+            close,
+            sum(size) as volume,
+            open_time
         from (
             select
-            first_value(price) over (partition by open_time order by timestamp) as open,
-            first_value(price) over (partition by open_time order by timestamp desc) as close,
-            *
+                first_value(price) over (partition by open_time order by timestamp) as open,
+                first_value(price) over (partition by open_time order by timestamp desc) as close,
+                *
             from (
                 select
-                *,
-                cast(timestamp/(1000*:time_span) as int) as open_time
+                    *,
+                    cast(timestamp/(1000*:time_span) as int) as open_time
                 from tick
                 where tick.symbol= :symbol and tick.timestamp > :min_unix_timestamp
             )
