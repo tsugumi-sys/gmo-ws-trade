@@ -2,6 +2,7 @@ import logging
 import multiprocessing
 import os
 import sys
+import traceback
 
 from dotenv import load_dotenv
 
@@ -32,7 +33,7 @@ def main():
     time_span = 5
     max_orderbook_table_rows = 1000
     max_tick_table_rows = 1000
-    max_ohlcv_table_rows = 1000
+    max_ohlcv_table_rows = 100000
 
     logging_process = get_logging_process(logging_queue=logging_queue, queue_and_trade_manager=queue_and_trade_manager)
     queue_and_trade_process = get_manage_queue_and_trade_process(
@@ -62,6 +63,11 @@ def main():
         logger.warning("Rerun bot")
 
         main()
+
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        logger.error(e)
+        raise ConnectionFailedError
 
 
 if __name__ == "__main__":

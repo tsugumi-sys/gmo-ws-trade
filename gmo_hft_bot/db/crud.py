@@ -490,9 +490,9 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
             open_time
         from (
             select
-                first_value(price) over (partition by open_time order by timestamp) as open,
-                first_value(price) over (partition by open_time order by timestamp desc) as close,
-                *
+                *,
+                first_value(price) over (partition by open_time order by timestamp, price desc) as open,
+                first_value(price) over (partition by open_time order by timestamp, price desc) as close
             from (
                 select
                     *,
