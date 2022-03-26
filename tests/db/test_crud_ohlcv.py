@@ -40,7 +40,7 @@ class TestCrudOHLCV(unittest.TestCase):
             ),
             response_schemas.TickResponseItem(
                 channel="trades",
-                price="200",
+                price="250",
                 side="SELL",
                 size="0.1",
                 timestamp=dummy_timestamp2,
@@ -48,7 +48,7 @@ class TestCrudOHLCV(unittest.TestCase):
             ),
             response_schemas.TickResponseItem(
                 channel="trades",
-                price="100",
+                price="50",
                 side="BUY",
                 size="0.1",
                 timestamp=dummy_timestamp3,
@@ -207,13 +207,18 @@ class TestCrudOHLCV(unittest.TestCase):
         self.assertEqual(res[0].timestamp, valid_timestamp)
 
     def test_create_ohlcv_from_ticks(self):
-        time_span = 1
+        time_span = 100
         with SessionLocal() as db:
             crud.create_ohlcv_from_ticks(db=db, symbol=self.dummy_symbol, time_span=time_span, max_rows=1)
             rows = crud._count_ohlcv(db)
             res = crud.get_ohlcv_with_symbol(db=db, symbol=self.dummy_symbol, limit=1)
 
-        self.assertEqual(rows, 4)
+        self.assertEqual(rows, 1)
         valid_timestamp = parser.parse(self.dummy_timestamps[0]).timestamp() * 1000
         valid_timestamp = (valid_timestamp // (time_span * 1000)) * time_span
         self.assertEqual(res[0].timestamp, valid_timestamp)
+
+        self.assertEqual(res[0].open, 200)
+        self.assertEqual(res[0].high, 250)
+        self.assertEqual(res[0].low, 50)
+        self.assertEqual(res[0].close, 100)

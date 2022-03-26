@@ -492,7 +492,7 @@ def create_ohlcv_from_ticks(db: Session, symbol: str, time_span: int, max_rows: 
             select
                 *,
                 first_value(price) over (partition by open_time order by timestamp, price desc) as open,
-                first_value(price) over (partition by open_time order by timestamp, price desc) as close
+                first_value(price) over (partition by open_time order by timestamp desc, price desc) as close
             from (
                 select
                     *,
@@ -561,7 +561,7 @@ def get_prediction_info(db: Session, symbol: str) -> schemas.PreidictInfo:
     buy_board_items, sell_board_items = get_current_board(db=db, symbol=symbol)
 
     # Get ohlcv
-    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=1, as_df=True, ascending=False, symbol=symbol)
+    ohlcv_df = get_ohlcv_with_symbol(db=db, limit=5, as_df=True, ascending=False, symbol=symbol)
     ohlcv_df = ohlcv_df.sort_values("timestamp")
 
     prediction = get_prediction(ohlcv_df)
@@ -599,8 +599,10 @@ def get_prediction(ohlcv_df: pd.DataFrame) -> Optional[Dict]:
     # ===================
     if len(ohlcv_df) > 0:
         # 予測値の計算
-        open, high, low, close = ohlcv_df["open"].iloc[-1], ohlcv_df["high"].iloc[-1], ohlcv_df["low"].iloc[-1], ohlcv_df["close"].iloc[-1]
-        predict_value = close / ((open + high + low + close) / 4)
+        # open, high, low, close = ohlcv_df["open"].iloc[-1], ohlcv_df["high"].iloc[-1], ohlcv_df["low"].iloc[-1], ohlcv_df["close"].iloc[-1]
+        # predict_value = close / ((open + high + low + close) / 4)
+        ohlcv_df["up_candle"] = ohlcv_df["close"] / ohlcv_df["open"] - 1
+        predict_value = len(ohlcv_df.loc[ohlcv_df["up_candle"] > 0])
 
         buy_threshhold = 1
         if predict_value != 1.0:
