@@ -51,7 +51,7 @@ def ohlcv_plot(ax, df: pd.DataFrame):
 
     # SMA
     # sma = df["close"].rolling(window).mean()
-    # ax.plot(df.index, sma, linewidth=0.5)
+    # ax.plot(df.index, sma, linewidth=0.5
 
     # 価格目盛調整
     # グラフ下部に出来高の棒グラフを描画するので、そのためのスペースを空けるよう目盛を調整する
